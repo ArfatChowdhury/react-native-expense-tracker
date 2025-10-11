@@ -1,13 +1,19 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
+import tailwind from 'twrnc'
 
-const Home = ({navigation}) => {
+const Home = ({ navigation }) => {
   return (
-    <View>
-      <Text>Home</Text>
-      <TouchableOpacity onPress={() =>  navigation.navigate('Check')}>
-        <Text>Check</Text>
-      </TouchableOpacity>
+    <View style={tailwind`px-5`}>
+
+      <View style={tailwind` pt-5 pb-5`}>
+        <Text style={tailwind`text-4xl font-bold`}>Hello👋</Text>
+        <Text style={tailwind`text-base text-gray-500 mt-1`}>Start tracking your expenses easily</Text>
+      </View>
+      <View style={tailwind`bg-black rounded-3xl p-6 my-5 items-center shadow-lg`}>
+          <Text style={tailwind`text-base text-gray-400`}>Spent so far</Text>
+          <Text style={tailwind`text-base text-white text-4xl mt-2 font-bold`}>$400</Text>
+      </View>
     </View>
   )
 }
