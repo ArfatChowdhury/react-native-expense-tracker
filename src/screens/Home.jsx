@@ -1,6 +1,7 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
 import tailwind from 'twrnc'
+import ExpenseItemCard from '../components/ExpenseItemCard'
 
 const Home = ({ navigation }) => {
   return (
@@ -14,6 +15,11 @@ const Home = ({ navigation }) => {
           <Text style={tailwind`text-base text-gray-400`}>Spent so far</Text>
           <Text style={tailwind`text-base text-white text-4xl mt-2 font-bold`}>$400</Text>
       </View>
+      <FlatList
+      data={[]}
+      keyExtractor={item => item.id}
+      renderItem={({item})=><ExpenseItemCard/>}
+      />
     </View>
   )
 }
