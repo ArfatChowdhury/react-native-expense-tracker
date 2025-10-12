@@ -29,12 +29,13 @@ const AppNavigator = () => {
       <Stack.Screen name="Category" component={Category}
       
       options={{
-        presentation: 'modal',
+        presentation: 'transparentModal',
         cardStyle: { 
-          marginTop: Platform.OS === 'android' ? 70 : 0, 
+          marginTop: Platform.OS === 'android' ? 75 : 0, 
           backgroundColor: 'white',
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
+          
         },
         cardOverlayEnabled: true, 
       }}

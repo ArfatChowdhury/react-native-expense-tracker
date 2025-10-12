@@ -13,7 +13,7 @@ const Create = ({ navigation }) => {
     navigation.navigate('Category')
   }
   return (
-    <View style={tailwind`flex-1 px-5  mt-2`}>
+    <View style={tailwind`flex-1 px-5  mt-4`}>
       <View style={tailwind`my-4`}>
         <Text style={tailwind`text-3xl font-bold mb-2`}>Add new expenses</Text>
         <Text style={tailwind`text-base text-gray-500`}>Enter the details of your expenses to help you track your spending.</Text>
