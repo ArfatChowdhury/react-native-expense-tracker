@@ -17,7 +17,7 @@ const Home = ({ navigation }) => {
           <Text style={tailwind`text-base text-white text-4xl mt-2 font-bold`}>$400</Text>
       </View>
       <FlatList
-      data={[]}
+      data={[1,2,3]}
       keyExtractor={item => item.id}
       renderItem={({item})=> <ExpenseItemCard/>}
       ListEmptyComponent={<EmptyList/>}
