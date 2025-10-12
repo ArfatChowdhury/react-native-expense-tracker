@@ -2,6 +2,7 @@ import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import React from 'react'
 import tailwind from 'twrnc'
 import ExpenseItemCard from '../components/ExpenseItemCard'
+import EmptyList from '../components/EmptyList'
 
 const Home = ({ navigation }) => {
   return (
@@ -18,7 +19,8 @@ const Home = ({ navigation }) => {
       <FlatList
       data={[]}
       keyExtractor={item => item.id}
-      renderItem={({item})=><ExpenseItemCard/>}
+      renderItem={({item})=> <ExpenseItemCard/>}
+      ListEmptyComponent={<EmptyList/>}
       />
     </View>
   )
