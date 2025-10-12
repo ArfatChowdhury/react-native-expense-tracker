@@ -70,6 +70,7 @@ const Home = ({ navigation }) => {
       color: '#FFA07A' // Light salmon for healthcare
     }
   ];
+  const totalSpent = expensesData.reduce((sum,item) => sum+item.amount, 0)
   return (
     <View style={tailwind`px-5 flex-1`}>
 
@@ -79,7 +80,7 @@ const Home = ({ navigation }) => {
       </View>
       <View style={tailwind`bg-black rounded-3xl p-6 my-5 items-center shadow-lg`}>
         <Text style={tailwind`text-base text-gray-400`}>Spent so far</Text>
-        <Text style={tailwind`text-base text-white text-4xl mt-2 font-bold`}>$400</Text>
+        <Text style={tailwind`text-base text-white text-4xl mt-2 font-bold`}>${totalSpent.toFixed(2)}</Text>
       </View>
 
       <FlatList
@@ -87,7 +88,7 @@ const Home = ({ navigation }) => {
         keyExtractor={item => item.id}
         renderItem={({ item }) => <ExpenseItemCard item={item} />}
         ListEmptyComponent={<EmptyList />}
-        contentContainerStyle={{ marginBottom: 20, flex: 1 }}
+        contentContainerStyle={{ marginBottom: 20}}
       />
 
     </View>
