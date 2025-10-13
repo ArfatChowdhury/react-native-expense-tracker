@@ -1,5 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import { createContext, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { Alert } from "react-native";
 
 
@@ -14,6 +15,38 @@ export const AppContextProvider = ({ children }) => {
     const [title, setTitle] = useState('')
     const [navigation, setNavigation] = useState(null);
     const [category, setCategory] = useState({})
+    const [isLoading, setIsLoading] = useState(true);
+    useEffect(() => {
+        loadExpensesFromStorage();
+    }, []);
+
+    useEffect(() => {
+        if (!isLoading) {
+            saveExpensesToStorage();
+        }
+    }, [expenses]);
+
+    const loadExpensesFromStorage = async () => {
+        try {
+            const storedExpenses = await AsyncStorage.getItem('expenses');
+            if (storedExpenses) {
+                setExpenses(JSON.parse(storedExpenses));
+            }
+        } catch (error) {
+            console.log('Error loading expenses:', error);
+            Alert.alert('Error', 'Failed to load expenses');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    const saveExpensesToStorage = async () => {
+        try {
+            await AsyncStorage.setItem('expenses', JSON.stringify(expenses));
+        } catch (error) {
+            console.log('Error saving expenses:', error);
+            Alert.alert('Error', 'Failed to save expenses');
+        }
+    };
     const handleAddExpense = (navigation) => {
         if (!title || !amount || !category) {
             Alert.alert('All fields are required')

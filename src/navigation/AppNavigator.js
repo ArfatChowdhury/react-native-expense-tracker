@@ -13,7 +13,7 @@ const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator()
 function MyTabs() {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator  screenOptions={{ headerShown: false }}>
       <Tab.Screen name="Home" component={Home} />
       <Tab.Screen name="Create" component={Create} />
       <Tab.Screen name="Insight" component={Insight} />

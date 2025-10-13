@@ -11,8 +11,10 @@ const Home = ({ navigation }) => {
   const {expenses} = useContext(AppContext)
   console.log('Expenses in Home:', expenses);
   console.log('Number of expenses:', expenses.length);
-  // const totalSpent = expenses.reduce((sum,item) => sum+item.amount, 0)
-  const totalSpent = null
+ 
+const totalSpent = expenses.reduce((sum, item) => sum + Number(item.amount), 0)
+
+  
   return (
     <View style={tailwind`px-5 flex-1`}>
 

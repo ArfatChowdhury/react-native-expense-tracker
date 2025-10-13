@@ -20,7 +20,7 @@ const ExpenseItemCard = ({ item }) => {
 
                 </View>
                 <View style={tailwind`items-end`} >
-                    <Text style={tailwind`font-bold text-base text-black`}>{'$300'}</Text>
+                    <Text style={tailwind`font-bold text-base text-black`}>${item.amount}</Text>
                     <Text style={tailwind`text-xs text-gray-500 mt-1`}>{'2024-12-08'}</Text>
                 </View>
             </View>

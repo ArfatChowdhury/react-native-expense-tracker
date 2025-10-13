@@ -8,7 +8,9 @@ export default function App() {
   return (
     <AppContextProvider>
       <NavigationContainer>
-        <AppNavigator />
+       <View style={tw`flex-1 mt-10`}>
+         <AppNavigator />
+       </View>
       </NavigationContainer>
     </AppContextProvider>
 
