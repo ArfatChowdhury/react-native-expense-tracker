@@ -4,72 +4,74 @@ import tailwind from 'twrnc'
 import ExpenseItemCard from '../components/ExpenseItemCard'
 import EmptyList from '../components/EmptyList'
 
+
+export const expensesData = [
+  {
+    id: '1',
+    icon: '🛒',
+    title: 'Grocery Shopping',
+    category: 'food',
+    amount: 250.0,
+    date: '2025-09-06',
+    color: '#FF6B6B' // Red for food
+  },
+  {
+    id: '2',
+    icon: '🚗',
+    title: 'Fuel',
+    category: 'transport',
+    amount: 180.0,
+    date: '2025-09-05',
+    color: '#4ECDC4' // Teal for transport
+  },
+  {
+    id: '3',
+    icon: '🎬',
+    title: 'Movie Tickets',
+    category: 'entertainment',
+    amount: 120.0,
+    date: '2025-09-04',
+    color: '#45B7D1' // Blue for entertainment
+  },
+  {
+    id: '4',
+    icon: '👕',
+    title: 'New Clothes',
+    category: 'shopping',
+    amount: 350.0,
+    date: '2025-09-03',
+    color: '#96CEB4' // Green for shopping
+  },
+  {
+    id: '5',
+    icon: '🏠',
+    title: 'Electricity Bill',
+    category: 'utilities',
+    amount: 200.0,
+    date: '2025-09-02',
+    color: '#FFEAA7' // Yellow for utilities
+  },
+  {
+    id: '6',
+    icon: '🍽️',
+    title: 'Dinner Date',
+    category: 'dining',
+    amount: 180.0,
+    date: '2025-09-01',
+    color: '#DDA0DD' // Plum for dining
+  },
+  {
+    id: '7',
+    icon: '💊',
+    title: 'Medicines',
+    category: 'healthcare',
+    amount: 150.0,
+    date: '2025-08-31',
+    color: '#FFA07A' // Light salmon for healthcare
+  }
+];
 const Home = ({ navigation }) => {
-  const expensesData = [
-    {
-      id: '1',
-      icon: '🛒',
-      title: 'Grocery Shopping',
-      category: 'food',
-      amount: 250.0,
-      date: '2025-09-06',
-      color: '#FF6B6B' // Red for food
-    },
-    {
-      id: '2',
-      icon: '🚗',
-      title: 'Fuel',
-      category: 'transport',
-      amount: 180.0,
-      date: '2025-09-05',
-      color: '#4ECDC4' // Teal for transport
-    },
-    {
-      id: '3',
-      icon: '🎬',
-      title: 'Movie Tickets',
-      category: 'entertainment',
-      amount: 120.0,
-      date: '2025-09-04',
-      color: '#45B7D1' // Blue for entertainment
-    },
-    {
-      id: '4',
-      icon: '👕',
-      title: 'New Clothes',
-      category: 'shopping',
-      amount: 350.0,
-      date: '2025-09-03',
-      color: '#96CEB4' // Green for shopping
-    },
-    {
-      id: '5',
-      icon: '🏠',
-      title: 'Electricity Bill',
-      category: 'utilities',
-      amount: 200.0,
-      date: '2025-09-02',
-      color: '#FFEAA7' // Yellow for utilities
-    },
-    {
-      id: '6',
-      icon: '🍽️',
-      title: 'Dinner Date',
-      category: 'dining',
-      amount: 180.0,
-      date: '2025-09-01',
-      color: '#DDA0DD' // Plum for dining
-    },
-    {
-      id: '7',
-      icon: '💊',
-      title: 'Medicines',
-      category: 'healthcare',
-      amount: 150.0,
-      date: '2025-08-31',
-      color: '#FFA07A' // Light salmon for healthcare
-    }
-  ];
+ 
   const totalSpent = expensesData.reduce((sum,item) => sum+item.amount, 0)
   return (
     <View style={tailwind`px-5 flex-1`}>
