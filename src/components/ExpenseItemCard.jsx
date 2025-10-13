@@ -14,8 +14,8 @@ const ExpenseItemCard = ({ item }) => {
                 </View>
                 <View style={tailwind`flex-1`}>
                     <Text style={tailwind`text-base font-bold text-gray-800`}>{item.title}</Text>
-                    <View style={[tailwind`mt-1 px-2 py-1 rounded-lg  self-start`,{backgroundColor: item.color}]}>
-                        <Text style={tailwind`text-xs font-bold text-gray-700`}>{item.category}</Text>
+                    <View style={[tailwind`mt-1 px-2 py-1 rounded-lg  self-start`,{backgroundColor: item.category?.color}]}>
+                        <Text style={tailwind`text-xs font-bold text-gray-700`}>{item.category.name}</Text>
                     </View>
 
                 </View>
