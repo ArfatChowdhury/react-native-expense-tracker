@@ -61,13 +61,7 @@ const Home = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Add Expense Button */}
-      <TouchableOpacity 
-        onPress={() => navigation.navigate('Create')}
-        style={tailwind`absolute bottom-6 right-6 bg-black w-16 h-16 rounded-full justify-center items-center shadow-lg`}
-      >
-        <Text style={tailwind`text-white text-2xl`}>+</Text>
-      </TouchableOpacity>
+      
     </View>
   )
 }
