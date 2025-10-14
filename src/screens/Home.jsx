@@ -8,7 +8,7 @@ import { AppContext } from '../Contex/ContextApi'
 
 
 const Home = ({ navigation }) => {
-  const {expenses} = useContext(AppContext)
+  const {expenses, handleDelete, handleEdit} = useContext(AppContext)
   console.log('Expenses in Home:', expenses);
   console.log('Number of expenses:', expenses.length);
  
@@ -30,7 +30,7 @@ const Home = ({ navigation }) => {
       <FlatList
         data={expenses || []}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => <ExpenseItemCard item={item} />}
+        renderItem={({ item }) => <ExpenseItemCard item={item} handleDelete={handleDelete}  handleEdit={handleEdit}/>}
         ListEmptyComponent={<EmptyList />}
         contentContainerStyle={{ marginBottom: 20}}
       />

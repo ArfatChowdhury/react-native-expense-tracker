@@ -5,11 +5,23 @@ import { AppContext } from '../Contex/ContextApi';
 
 const Create = ({ navigation, route }) => {
   const [activeField, setActiveField] = useState(null);
-  const { handleAddExpense, category, setCategory, title, setTitle, amount, setAmount } = useContext(AppContext)
+  const { handleAddExpense, category, setCategory, title, setTitle, amount, setAmount, editingId, setEditingId, handleUpdateExpense } = useContext(AppContext)
 
+  const isEditing = editingId !== null
+
+  const handleSubmit = () => {
+    if (isEditing) {
+      
+      handleUpdateExpense(navigation);
+    } else {
+     
+      handleAddExpense(navigation);
+    }
+  }
+  
   useEffect(() => {
     if (route.params?.itemCat) {
-      console.log(route.params?.itemCat, 'gggggg');
+      // console.log(route.params?.itemCat, 'gggggg');
       setCategory(route.params?.itemCat)
     }
   }, [route.params?.itemCat])
@@ -21,8 +33,12 @@ const handleCategoryInput = () => {
 return (
   <View style={tailwind`flex-1 px-5  mt-4`}>
     <View style={tailwind`my-4`}>
-      <Text style={tailwind`text-3xl font-bold mb-2`}>Add new expenses</Text>
-      <Text style={tailwind`text-base text-gray-500`}>Enter the details of your expenses to help you track your spending.</Text>
+    <Text style={tailwind`text-3xl font-bold mb-2`}>
+          {isEditing ? 'Edit Expense' : 'Add New Expense'}
+        </Text>
+        <Text style={tailwind`text-base text-gray-500`}>
+          {isEditing ? 'Update your expense details' : 'Enter the details of your expenses'}
+        </Text>
     </View>
     <View style={tailwind`mb-3`}>
       <Text style={tailwind`mb-2 text-black font-semibold`}>Enter Amount</Text>
@@ -62,9 +78,28 @@ return (
       </View>
     </Pressable>
     {/* add button  */}
-    <TouchableOpacity onPress={()=> handleAddExpense(navigation)} style={tailwind`bg-black p-6 rounded-lg mt-8`}>
-      <Text style={tailwind`text-white text-center text-lg font-bold`}>Add Expenses</Text>
-    </TouchableOpacity>
+    <TouchableOpacity 
+        onPress={handleSubmit} 
+        style={tailwind`bg-black p-6 rounded-lg mt-8`}
+      >
+        <Text style={tailwind`text-white text-center text-lg font-bold`}>
+          {isEditing ? 'Update Expense' : 'Add Expense'}
+        </Text>
+      </TouchableOpacity>
+
+      {isEditing && (
+        <TouchableOpacity 
+          onPress={() => {
+            setEditingId(null); // Clear edit mode
+            navigation.goBack();
+          }} 
+          style={tailwind`bg-gray-500 p-6 rounded-lg mt-4`}
+        >
+          <Text style={tailwind`text-white text-center text-lg font-bold`}>
+            Cancel
+          </Text>
+        </TouchableOpacity>
+      )}
   </View>
 )
 }
