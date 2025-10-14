@@ -12,7 +12,7 @@ const Home = ({ navigation }) => {
   console.log('Expenses in Home:', expenses);
   console.log('Number of expenses:', expenses.length);
  
-const totalSpent = expenses.reduce((sum, item) => sum + Number(item.amount), 0)
+ const totalSpent = expenses.reduce((sum, item) => sum + Number(item.amount), 0)
 
   
   return (

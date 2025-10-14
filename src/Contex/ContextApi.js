@@ -69,8 +69,9 @@ export const AppContextProvider = ({ children }) => {
         navigation.navigate('Home');
         
     }
+    const totalSpent = expenses.reduce((sum, item) => sum + Number(item.amount), 0)
 
-    const value = { handleAddExpense, category, setCategory, title, setTitle, amount, setAmount , expenses, setExpenses, setNavigation}
+    const value = { handleAddExpense, category, setCategory, title, setTitle, amount, setAmount , expenses, setExpenses, setNavigation, totalSpent}
     return (
         <AppContext.Provider value={value}>
             {children}

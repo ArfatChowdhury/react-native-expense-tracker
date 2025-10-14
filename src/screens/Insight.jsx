@@ -8,13 +8,20 @@ import RenderInsightitem from '../components/RenderInsightitem'
 
 const Insight = () => {
   const data = [{ value: 80 }, { value: 80 }, { value: 90 }, { value: 70 }]
-  const { expenses } = useContext(AppContext)
+  const { expenses, totalSpent } = useContext(AppContext)
 
-  const chartData = expenses.map(expense => ({
-    value: expense.amount,
-    color: expense.category?.color || '#666',
-    text: expense.category?.name || 'other'
-  }))
+
+
+  const chartData = expenses.map(expense => {
+const percentage = totalSpent > 0 ? ((expense.amount / totalSpent) *100 ).toFixed(0) : 0
+    return {
+      value: expense.amount,
+      color: expense.category?.color || '#666',
+      label: expense.category?.name || 'other',
+      text: `${percentage}%`
+
+    }
+  })
   return (
     <View>
       <View style={tailwind`items-center my-5`}>
@@ -29,9 +36,9 @@ const Insight = () => {
       </View>
 
       <FlatList
-      data={expenses}
-      keyExtractor={(item) => item.id}
-      renderItem={({item})=> <RenderInsightitem item={item}/>}
+        data={expenses}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <RenderInsightitem item={item} />}
       />
 
     </View>
