@@ -10,11 +10,6 @@ Built with React Native, Expo, and Context API for state management.
 - **Total Spent:** Instantly see how much you've spent so far.
 - **Persistent Storage:** Your expenses are saved locally using AsyncStorage.
 
-## Coming Soon
-
-- **Delete Expenses:** Remove unwanted entries.
-- **Edit Expenses:** Update your expense details.
-- **Insights:** Get analytics and charts about your spending habits.
 
 ## Getting Started
 
