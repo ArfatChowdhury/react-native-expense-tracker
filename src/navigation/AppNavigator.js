@@ -10,6 +10,10 @@ import Budget from "../screens/Budget"
 import Settings from "../screens/Settings"
 import Category from "../screens/Category"
 import AddIncome from "../screens/AddIncome"
+import LoginScreen from "../screens/LoginScreen"
+import React, { useState, useEffect } from "react"
+import { onAuthStateChanged } from "../services/firestoreService"
+import { ActivityIndicator, View } from "react-native"
 
 const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator()
@@ -84,28 +88,60 @@ function MyTabs() {
 }
 
 const AppNavigator = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged((user) => {
+      if (user) {
+        setIsAuthenticated(true)
+      } else {
+        // Only set false if they haven't manually skipped
+        setIsAuthenticated(prev => prev ? true : false)
+      }
+      setIsInitializing(false)
+    })
+    return unsubscribe
+  }, [])
+
+  if (isInitializing) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#16a34a" />
+      </View>
+    )
+  }
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="BottomTabs" component={MyTabs} />
-      <Stack.Screen
-        name="Category"
-        component={Category}
-        options={{
-          presentation: 'transparentModal',
-          cardStyle: {
-            marginTop: Platform.OS === 'android' ? 75 : 0,
-            backgroundColor: 'white',
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-          },
-          cardOverlayEnabled: true,
-        }}
-      />
-      <Stack.Screen
-        name="AddIncome"
-        component={AddIncome}
-        options={{ presentation: 'card' }}
-      />
+      {!isAuthenticated ? (
+        <Stack.Screen name="Login">
+          {(props) => <LoginScreen {...props} onSkip={() => setIsAuthenticated(true)} />}
+        </Stack.Screen>
+      ) : (
+        <>
+          <Stack.Screen name="BottomTabs" component={MyTabs} />
+          <Stack.Screen
+            name="Category"
+            component={Category}
+            options={{
+              presentation: 'transparentModal',
+              cardStyle: {
+                marginTop: Platform.OS === 'android' ? 75 : 0,
+                backgroundColor: 'white',
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+              },
+              cardOverlayEnabled: true,
+            }}
+          />
+          <Stack.Screen
+            name="AddIncome"
+            component={AddIncome}
+            options={{ presentation: 'card' }}
+          />
+        </>
+      )}
     </Stack.Navigator>
   )
 }

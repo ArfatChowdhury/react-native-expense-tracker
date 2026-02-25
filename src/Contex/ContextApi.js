@@ -16,6 +16,7 @@ export const AppContextProvider = ({ children }) => {
     // ── Budgets & Preferences ────────────────────────────────
     const [budgets, setBudgets] = useState({}) // { 'Food': 200, 'Bills': 150, ... }
     const [currency, setCurrencyState] = useState('USD')
+    const [isDarkMode, setIsDarkMode] = useState(false)
 
     // ── Form state ────────────────────────────────────────────
     const [amount, setAmount] = useState('')
@@ -51,16 +52,18 @@ export const AppContextProvider = ({ children }) => {
 
     const loadData = async () => {
         try {
-            const [storedExpenses, storedIncomes, storedBudgets, storedCurrency] = await Promise.all([
+            const [storedExpenses, storedIncomes, storedBudgets, storedCurrency, storedDarkMode] = await Promise.all([
                 AsyncStorage.getItem('expenses'),
                 AsyncStorage.getItem('incomes'),
                 AsyncStorage.getItem('budgets'),
                 AsyncStorage.getItem('currency'),
+                AsyncStorage.getItem('isDarkMode'),
             ]);
             if (storedExpenses) setExpenses(JSON.parse(storedExpenses));
             if (storedIncomes) setIncomes(JSON.parse(storedIncomes));
             if (storedBudgets) setBudgets(JSON.parse(storedBudgets));
             if (storedCurrency) setCurrencyState(storedCurrency);
+            if (storedDarkMode) setIsDarkMode(JSON.parse(storedDarkMode));
         } catch (error) {
             console.log('Error loading data:', error);
             Alert.alert('Error', 'Failed to load your data');
@@ -153,6 +156,12 @@ export const AppContextProvider = ({ children }) => {
         AsyncStorage.setItem('currency', c).catch(e => console.log('Error saving currency:', e));
     };
 
+    const toggleDarkMode = () => {
+        const newMode = !isDarkMode;
+        setIsDarkMode(newMode);
+        AsyncStorage.setItem('isDarkMode', JSON.stringify(newMode)).catch(e => console.log('Error saving dark mode:', e));
+    };
+
     // ── Derived values ────────────────────────────────────────
     const totalSpent = expenses.reduce((sum, item) => sum + Number(item.amount), 0);
     const totalIncome = incomes.reduce((sum, item) => sum + Number(item.amount), 0);
@@ -201,6 +210,7 @@ export const AppContextProvider = ({ children }) => {
         // Budget & Preferences
         budgets, setBudget,
         currency, setCurrency,
+        isDarkMode, toggleDarkMode,
         // Derived
         totalSpent, totalIncome, balance,
         // Expense actions

@@ -1,4 +1,4 @@
-import { Alert, Share, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, Share, Switch, Text, TouchableOpacity, View } from 'react-native'
 import React, { useContext } from 'react'
 import tailwind from 'twrnc'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -8,7 +8,7 @@ import { AppContext } from '../Contex/ContextApi'
 const CURRENCIES = ['USD', 'BDT', 'EUR', 'GBP', 'INR', 'SAR', 'AED']
 
 const Settings = () => {
-    const { expenses, incomes, currency, setCurrency, setExpenses, setIncomes } = useContext(AppContext)
+    const { expenses, incomes, currency, setCurrency, setExpenses, setIncomes, isDarkMode, toggleDarkMode } = useContext(AppContext)
 
     const handleClearAll = () => {
         Alert.alert(
@@ -47,6 +47,7 @@ const Settings = () => {
     const MenuItem = ({ icon, label, subtitle, onPress, danger }) => (
         <TouchableOpacity
             onPress={onPress}
+            disabled={!onPress}
             style={tailwind`bg-white rounded-2xl p-4 mb-3 flex-row items-center mx-5 shadow-sm`}
         >
             <View style={[tailwind`w-10 h-10 rounded-full justify-center items-center mr-4`, danger ? tailwind`bg-red-100` : tailwind`bg-green-100`]}>
@@ -56,7 +57,15 @@ const Settings = () => {
                 <Text style={[tailwind`font-semibold text-base`, danger ? tailwind`text-red-600` : tailwind`text-gray-800`]}>{label}</Text>
                 {subtitle ? <Text style={tailwind`text-xs text-gray-400 mt-0.5`}>{subtitle}</Text> : null}
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
+            {onPress ? <Ionicons name="chevron-forward" size={18} color="#d1d5db" /> : null}
+            {label === 'Dark Mode' && (
+                <Switch
+                    value={isDarkMode}
+                    onValueChange={toggleDarkMode}
+                    trackColor={{ false: '#d1d5db', true: '#16a34a' }}
+                    thumbColor="#ffffff"
+                />
+            )}
         </TouchableOpacity>
     )
 
@@ -87,7 +96,14 @@ const Settings = () => {
 
             {/* Actions */}
             <View style={tailwind`mt-4`}>
-                <Text style={tailwind`text-xs font-bold text-gray-400 uppercase mb-2 ml-6`}>Data</Text>
+                <Text style={tailwind`text-xs font-bold text-gray-400 uppercase mb-2 ml-6`}>Preferences</Text>
+                <MenuItem
+                    icon="moon-outline"
+                    label="Dark Mode"
+                    subtitle="Coming soon to all screens"
+                />
+
+                <Text style={tailwind`text-xs font-bold text-gray-400 uppercase mb-2 ml-6 mt-4`}>Data</Text>
                 <MenuItem
                     icon="share-outline"
                     label="Export to CSV"
@@ -105,7 +121,7 @@ const Settings = () => {
 
             {/* App info */}
             <View style={tailwind`items-center mt-8`}>
-                <Text style={tailwind`text-gray-300 text-sm`}>SpendWise v1.0.0</Text>
+                <Text style={tailwind`text-gray-300 text-sm`}>Wallety v1.0.0</Text>
                 <Text style={tailwind`text-gray-300 text-xs mt-1`}>Track your money, own your life</Text>
             </View>
         </SafeAreaView>
