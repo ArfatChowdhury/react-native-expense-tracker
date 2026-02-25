@@ -30,9 +30,14 @@ const LoginScreen = ({ onSkip }) => {
     // Using exact web client ID. Note: For a real Expo Go / EAS build, you usually need
     // an explicitly created iOS/Android client ID or an Expo proxy setup.
     // For this example, we assume the web client ID from your env vars mapped via proxy.
+    const webClientId = process.env.EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID || 'missing-client-id';
+    const androidClientId = process.env.EXPO_PUBLIC_FIREBASE_ANDROID_CLIENT_ID || webClientId;
+
     const [request, response, promptAsync] = Google.useAuthRequest({
-        webClientId: process.env.EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID || 'missing-client-id',
-        // Depending on your setup, you might need expoClientId, iosClientId, androidClientId
+        webClientId: webClientId,
+        androidClientId: androidClientId,
+        iosClientId: process.env.EXPO_PUBLIC_FIREBASE_IOS_CLIENT_ID || webClientId,
+        expoClientId: webClientId,
     });
 
     React.useEffect(() => {

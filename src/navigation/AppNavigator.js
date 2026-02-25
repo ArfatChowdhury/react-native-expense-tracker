@@ -64,7 +64,7 @@ function MyTabs() {
         component={Insight}
         options={{
           tabBarLabel: 'Insights',
-          tabBarIcon: ({ color, size }) => <AntDesign name="piechart" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="pie-chart" color={color} size={size} />,
         }}
       />
       <Tab.Screen
