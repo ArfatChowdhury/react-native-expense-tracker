@@ -1,13 +1,15 @@
-import { View, Text } from 'react-native'
+import { Text, View } from 'react-native'
 import React from 'react'
 import tailwind from 'twrnc'
 
-const EmptyList = ({ title, message }) => {
+const EmptyList = () => {
     return (
-        <View style={tailwind`items-center`}>
-            <Text style={tailwind`text-6xl my-2`}>📝</Text>
-            <Text style={tailwind`text-2xl font-bold mb-2`}>{title || 'no expenses yet!'}</Text>
-            <Text style={tailwind`text-base text-gray-500`}>{message || 'add new expense to see your list'}</Text>
+        <View style={tailwind`flex-1 items-center justify-center py-16`}>
+            <Text style={tailwind`text-5xl mb-4`}>💸</Text>
+            <Text style={tailwind`text-lg font-bold text-gray-600`}>No transactions yet</Text>
+            <Text style={tailwind`text-sm text-gray-400 mt-1 text-center px-8`}>
+                Tap "Add" below to record your first expense
+            </Text>
         </View>
     )
 }
