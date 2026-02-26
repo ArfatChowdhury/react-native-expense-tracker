@@ -1,6 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { categories } from "../Data/categoriesData";
 
 export const AppContext = createContext()
 
@@ -73,22 +74,22 @@ export const AppContextProvider = ({ children }) => {
     };
 
     // ── Expense CRUD ──────────────────────────────────────────
-    const handleAddExpense = (navigation) => {
-        if (!title || !amount || !category?.name) {
+    const handleAddExpense = ({ title: t, amount: amt, category: cat, date: d, navigation }) => {
+        if (!t || !amt || !cat?.name) {
             Alert.alert('Error', 'All fields are required');
             return;
         }
         const newExpense = {
             id: Date.now().toString(),
-            title: title.trim(),
-            category,
-            amount: parseFloat(parseFloat(amount).toFixed(2)),
-            icon: category.icon,
-            date: new Date().toISOString().split('T')[0],
+            title: t.trim(),
+            category: cat,
+            amount: parseFloat(parseFloat(amt).toFixed(2)),
+            icon: cat.icon,
+            date: d || new Date().toISOString().split('T')[0],
         };
         setExpenses(prev => [newExpense, ...prev]);
         resetForm();
-        navigation.navigate('Home');
+        if (navigation) navigation.navigate('Home');
     };
 
     const handleEdit = (item) => {
@@ -142,6 +143,26 @@ export const AppContextProvider = ({ children }) => {
         setIncomes(prev => prev.filter(item => item.id !== id));
     };
 
+    const handleAddTransaction = (navigation, { type, title: t, amount: amt, category: cat, date: d }) => {
+        if (type === 'income') {
+            handleAddIncome({ amount: amt, source: t, date: d, navigation });
+        } else {
+            handleAddExpense({ title: t, amount: amt, category: cat, date: d, navigation });
+        }
+    };
+
+    const handleUpdateTransaction = (navigation, { type, title: t, amount: amt, category: cat }) => {
+        if (type === 'income') {
+            // Basic update for now: just replace in incomes array
+            setIncomes(prev => prev.map(inv => inv.id === editingId ? { ...inv, source: t, amount: parseFloat(amt) } : inv));
+        } else {
+            handleUpdateExpense(navigation);
+            return; // handleUpdateExpense already handles navigation
+        }
+        resetForm();
+        navigation.navigate('Home');
+    };
+
     // ── Budget actions ─────────────────────────────────────
     const setBudget = (categoryName, limit) => {
         const newBudgets = { ...budgets, [categoryName]: limit };
@@ -187,6 +208,22 @@ export const AppContextProvider = ({ children }) => {
         return expenses; // 'all'
     })();
 
+    // ── Derived Budgets ───────────────────────────────────────
+    const categoriesWithBudget = useMemo(() => {
+        return categories.map(cat => {
+            const budgetLimit = budgets[cat.name] || 0;
+            const amountSpent = expenses
+                .filter(exp => exp.category?.name === cat.name)
+                .reduce((sum, exp) => sum + Number(exp.amount), 0);
+
+            return {
+                ...cat,
+                budgetLimit,
+                amountSpent
+            };
+        });
+    }, [expenses, budgets]);
+
     // ── Helpers ───────────────────────────────────────────────
     const resetForm = () => {
         setAmount('');
@@ -208,15 +245,18 @@ export const AppContextProvider = ({ children }) => {
         selectedPeriod, setSelectedPeriod,
         filteredExpenses,
         // Budget & Preferences
-        budgets, setBudget,
+        budgets, setBudget, setBudgets,
         currency, setCurrency,
         isDarkMode, toggleDarkMode,
         // Derived
         totalSpent, totalIncome, balance,
+        categoriesWithBudget,
         // Expense actions
         handleAddExpense, handleEdit, handleUpdateExpense, handleDelete,
         // Income actions
         handleAddIncome, handleDeleteIncome,
+        // Unified Actions
+        handleAddTransaction, handleUpdateTransaction,
     };
 
     return (

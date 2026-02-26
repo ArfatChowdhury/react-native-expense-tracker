@@ -1,33 +1,14 @@
-import {
-  Alert, FlatList, Image, StatusBar,
-  StyleSheet, Text, TouchableOpacity, View, ScrollView
-} from 'react-native'
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar } from 'react-native'
 import React, { useContext } from 'react'
-import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import { AppContext } from '../Contex/ContextApi'
+import { COLORS, SHADOW } from '../theme'
 import ExpenseItemCard from '../components/ExpenseItemCard'
 import EmptyList from '../components/EmptyList'
-import { AppContext } from '../Contex/ContextApi'
-import { auth } from '../services/firebase'
-
-const PERIODS = [
-  { label: 'Today', value: 'today' },
-  { label: 'Week', value: 'week' },
-  { label: 'Month', value: 'month' },
-  { label: 'All', value: 'all' },
-]
 
 const Home = ({ navigation }) => {
-  const {
-    filteredExpenses, expenses, totalSpent, totalIncome,
-    balance, handleEdit, handleDelete, selectedPeriod, setSelectedPeriod
-  } = useContext(AppContext)
-
-  const user = auth.currentUser
-  const isLoggedIn = !!user
-  const firstName = user?.displayName?.split(' ')[0] || 'User'
-  const isPositive = balance >= 0
+  const { totalSpent, balance, expenses, handleEdit, handleDelete } = useContext(AppContext)
 
   const handleEditExpense = (item) => {
     handleEdit(item)
@@ -41,356 +22,132 @@ const Home = ({ navigation }) => {
     ])
   }
 
-  const displayList = filteredExpenses ?? expenses
-
   const ListHeader = () => (
-    <>
-      {/* ── TOP HEADER ───────────────────────────────────────── */}
-      <View style={styles.header}>
-        {/* Left: user greeting */}
-        <View style={styles.headerLeft}>
-          {isLoggedIn ? (
-            <View style={styles.userRow}>
-              {user?.photoURL ? (
-                <Image source={{ uri: user.photoURL }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarInitial}>{firstName[0]}</Text>
-                </View>
-              )}
-              <View>
-                <Text style={styles.welcomeText}>Welcome back</Text>
-                <Text style={styles.userName}>{user?.displayName || 'User'} 👋</Text>
-              </View>
-            </View>
-          ) : (
-            <View>
-              <Text style={styles.helloText}>Hello 👋</Text>
-              <Text style={styles.helloSub}>Track your money</Text>
-            </View>
-          )}
+    <View style={styles.headerContainer}>
+      {/* Header Top */}
+      <View style={styles.topBar}>
+        <View>
+          <Text style={styles.greeting}>Hello👋</Text>
+          <Text style={styles.subGreeting}>Start tracking your expenses</Text>
         </View>
-
-        {/* Right: icons */}
-        <View style={styles.headerRight}>
+        <View style={styles.headerActions}>
           <TouchableOpacity style={styles.iconBtn}>
-            <Ionicons name="notifications-outline" size={20} color="#94a3b8" />
-            <View style={styles.notifDot} />
+            <Ionicons name="notifications-outline" size={22} color={COLORS.textMain} />
+            <View style={styles.dot} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
-            <Ionicons name="settings-outline" size={20} color="#94a3b8" />
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => navigation.navigate('SettingsTab')}
+          >
+            <Ionicons name="settings-outline" size={22} color={COLORS.textMain} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── BALANCE CARD ─────────────────────────────────────── */}
+      {/* Balance Card */}
       <View style={styles.balanceCard}>
-        <LinearGradient
-          colors={['#1b1f3b', '#222749', '#1b1f3b']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+        <Text style={styles.balanceLabel}>Spent so far</Text>
+        <Text style={styles.balanceAmount}>${Number(totalSpent).toFixed(2)}</Text>
 
-        {/* Top label + chip */}
-        <View style={styles.balanceTopRow}>
-          <Text style={styles.balanceLabel}>Total Balance</Text>
-          <View style={[styles.balanceBadge, { backgroundColor: isPositive ? 'rgba(0,245,155,0.15)' : 'rgba(255,90,90,0.15)' }]}>
-            <View style={[styles.badgeDot, { backgroundColor: isPositive ? '#00f59b' : '#ff5a5a' }]} />
-            <Text style={[styles.badgeText, { color: isPositive ? '#00f59b' : '#ff5a5a' }]}>
-              {isPositive ? 'Healthy' : 'Overspent'}
-            </Text>
+        <View style={styles.balanceFooter}>
+          <View style={styles.footerItem}>
+            <Text style={styles.footerLabel}>Remaining Balance</Text>
+            <Text style={styles.footerValue}>${Number(balance).toFixed(2)}</Text>
           </View>
-        </View>
-
-        {/* Big number */}
-        <Text style={[styles.balanceAmount, { color: isPositive ? '#00f59b' : '#ff5a5a' }]}>
-          ${Math.abs(balance).toFixed(2)}
-        </Text>
-
-        {/* Divider */}
-        <View style={styles.divider} />
-
-        {/* Income / Expense Stats */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(0,245,155,0.15)' }]}>
-              <Ionicons name="arrow-down" size={13} color="#00f59b" />
-            </View>
-            <View>
-              <Text style={styles.statLabel}>Income</Text>
-              <Text style={styles.statValue}>${totalIncome.toFixed(2)}</Text>
-            </View>
-          </View>
-
-          <View style={styles.statSep} />
-
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(255,90,90,0.15)' }]}>
-              <Ionicons name="arrow-up" size={13} color="#ff5a5a" />
-            </View>
-            <View>
-              <Text style={styles.statLabel}>Expenses</Text>
-              <Text style={[styles.statValue, { color: '#ff5a5a' }]}>${totalSpent.toFixed(2)}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={styles.btnIncome}
-            onPress={() => navigation.navigate('AddIncome')}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="add" size={15} color="#0a0a14" />
-            <Text style={styles.btnIncomeText}>Add Income</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.btnExpense}
-            onPress={() => navigation.navigate('Create')}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="remove" size={15} color="#ff5a5a" />
-            <Text style={styles.btnExpenseText}>Add Expense</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── TRANSACTIONS HEADER + FILTER ────────────────────── */}
-      <View style={styles.txHeaderRow}>
-        <View style={styles.txTitleWrap}>
-          <Text style={styles.txTitle}>Transactions</Text>
-          <View style={styles.txCountBadge}>
-            <Text style={styles.txCount}>{displayList.length}</Text>
-          </View>
-        </View>
-
-        {/* Filter chips inline */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
-          {PERIODS.map(p => {
-            const active = selectedPeriod === p.value
-            return (
-              <TouchableOpacity
-                key={p.value}
-                onPress={() => setSelectedPeriod(p.value)}
-                style={[styles.filterPill, active && styles.filterPillActive]}
-              >
-                <Text style={[styles.filterText, active && styles.filterTextActive]}>
-                  {p.label}
-                </Text>
-              </TouchableOpacity>
-            )
-          })}
-        </ScrollView>
-      </View>
-    </>
+      <Text style={styles.sectionTitle}>Recent Transactions</Text>
+    </View>
   )
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a14" />
-      <LinearGradient colors={['#0a0a14', '#0d1320']} style={StyleSheet.absoluteFill} />
-      <SafeAreaView style={{ flex: 1 }}>
-        <FlatList
-          data={displayList}
-          keyExtractor={item => item.id}
-          ListHeaderComponent={<ListHeader />}
-          renderItem={({ item }) => (
-            <ExpenseItemCard
-              item={item}
-              onEdit={handleEditExpense}
-              onDelete={handleDeleteExpense}
-            />
-          )}
-          ListEmptyComponent={
-            <View style={{ paddingTop: 12 }}>
-              <EmptyList />
-            </View>
-          }
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      </SafeAreaView>
-    </View>
+    <SafeAreaView style={styles.root}>
+      <StatusBar barStyle="dark-content" />
+      <FlatList
+        data={expenses}
+        keyExtractor={item => item.id}
+        ListHeaderComponent={<ListHeader />}
+        renderItem={({ item }) => (
+          <ExpenseItemCard
+            item={item}
+            onEdit={handleEditExpense}
+            onDelete={handleDeleteExpense}
+          />
+        )}
+        ListEmptyComponent={<EmptyList />}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a14' },
+  root: { flex: 1, backgroundColor: COLORS.background },
+  listContent: { paddingBottom: 100 },
 
-  // ── Header ──────────────────────────────────────
-  header: {
+  headerContainer: { paddingHorizontal: 20, paddingTop: 10 },
+
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 14,
+    marginBottom: 25,
   },
-  headerLeft: { flex: 1 },
-  headerRight: { flexDirection: 'row', gap: 8 },
+  greeting: { fontSize: 32, fontWeight: '800', color: COLORS.textMain },
+  subGreeting: { fontSize: 14, color: COLORS.textSub, marginTop: 2 },
+
+  headerActions: { flexDirection: 'row', gap: 12 },
   iconBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
-    justifyContent: 'center', alignItems: 'center',
-    position: 'relative',
+    width: 44, height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.gray100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  notifDot: {
-    position: 'absolute', top: 9, right: 9,
-    width: 6, height: 6, borderRadius: 3,
-    backgroundColor: '#00f59b',
-    borderWidth: 1.5, borderColor: '#0a0a14',
+  dot: {
+    position: 'absolute',
+    top: 12, right: 12,
+    width: 8, height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.expense,
+    borderWidth: 2,
+    borderColor: COLORS.gray100,
   },
 
-  userRow: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: '#00f59b', marginRight: 10 },
-  avatarPlaceholder: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,245,155,0.15)',
-    borderWidth: 2, borderColor: '#00f59b',
-    justifyContent: 'center', alignItems: 'center',
-    marginRight: 10,
-  },
-  avatarInitial: { color: '#00f59b', fontWeight: '800', fontSize: 14 },
-  welcomeText: { color: '#94a3b8', fontSize: 11, marginBottom: 1 },
-  userName: { color: '#f1f5f9', fontWeight: '800', fontSize: 15 },
-  helloText: { color: '#f1f5f9', fontWeight: '800', fontSize: 22 },
-  helloSub: { color: '#94a3b8', fontSize: 13 },
-
-  // ── Balance Card ────────────────────────────────
   balanceCard: {
-    marginHorizontal: 16,
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    overflow: 'hidden',
-    // Shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-  balanceTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: COLORS.card,
+    borderRadius: 32,
+    padding: 28,
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 30,
+    ...SHADOW.md,
   },
-  balanceLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
-  balanceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 20,
-    gap: 5,
-  },
-  badgeDot: { width: 6, height: 6, borderRadius: 3 },
-  badgeText: { fontSize: 11, fontWeight: '700' },
+  balanceLabel: { color: COLORS.gray400, fontSize: 14, fontWeight: '600' },
+  balanceAmount: { color: COLORS.white, fontSize: 48, fontWeight: '900', marginTop: 8 },
 
-  balanceAmount: {
-    fontSize: 44,
-    fontWeight: '900',
-    letterSpacing: -1,
+  balanceFooter: {
+    width: '100%',
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+  },
+  footerItem: { alignItems: 'center' },
+  footerLabel: { color: COLORS.gray500, fontSize: 12, fontWeight: '600' },
+  footerValue: { color: COLORS.white, fontSize: 16, fontWeight: '700', marginTop: 4 },
+
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.textMain,
     marginBottom: 16,
+    letterSpacing: -0.5,
   },
-
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginBottom: 14 },
-
-  statsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
-  statItem: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
-  statIcon: {
-    width: 28, height: 28, borderRadius: 14,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  statLabel: { color: '#94a3b8', fontSize: 11 },
-  statValue: { color: '#f1f5f9', fontWeight: '700', fontSize: 16 },
-  statSep: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.08)' },
-
-  // Action Buttons
-  actionRow: { flexDirection: 'row', gap: 10 },
-  btnIncome: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#00f59b',
-    paddingVertical: 13,
-    borderRadius: 14,
-    shadowColor: '#00f59b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  btnIncomeText: { color: '#0a0a14', fontWeight: '800', fontSize: 13 },
-  btnExpense: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,90,90,0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,90,90,0.35)',
-    paddingVertical: 13,
-    borderRadius: 14,
-  },
-  btnExpenseText: { color: '#ff5a5a', fontWeight: '800', fontSize: 13 },
-
-  // ── Transaction section ──────────────────────────
-  txHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    gap: 10,
-  },
-  txTitleWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  txTitle: { color: '#f1f5f9', fontWeight: '800', fontSize: 15 },
-  txCountBadge: {
-    backgroundColor: 'rgba(0,245,155,0.15)',
-    borderRadius: 8,
-    paddingHorizontal: 7, paddingVertical: 2,
-  },
-  txCount: { color: '#00f59b', fontSize: 10, fontWeight: '700' },
-
-  // Filter pills (horizontal, compact, to the right)
-  filterScroll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  filterPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    marginRight: 6,
-  },
-  filterPillActive: {
-    backgroundColor: '#00f59b',
-    borderColor: '#00f59b',
-  },
-  filterText: { color: '#94a3b8', fontSize: 11, fontWeight: '600' },
-  filterTextActive: { color: '#0a0a14', fontWeight: '700' },
-
-  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
 })
 
 export default Home

@@ -1,5 +1,6 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
+import tailwind from 'twrnc'
 
 const PERIODS = [
     { label: 'Today', value: 'today' },
@@ -13,48 +14,29 @@ const DateFilterBar = ({ selectedPeriod, onSelect }) => {
         <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.container}
+            contentContainerStyle={tailwind`px-5 py-2 gap-2`}
         >
-            {PERIODS.map(p => {
-                const isActive = selectedPeriod === p.value
-                return (
-                    <TouchableOpacity
-                        key={p.value}
-                        onPress={() => onSelect(p.value)}
-                        style={[styles.pill, isActive && styles.pillActive]}
-                        activeOpacity={0.75}
-                    >
-                        <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
-                            {p.label}
-                        </Text>
-                    </TouchableOpacity>
-                )
-            })}
+            {PERIODS.map(p => (
+                <TouchableOpacity
+                    key={p.value}
+                    onPress={() => onSelect(p.value)}
+                    style={[
+                        tailwind`px-4 py-2 rounded-full border-2`,
+                        selectedPeriod === p.value
+                            ? tailwind`border-green-500 bg-green-500`
+                            : tailwind`border-gray-200 bg-white`
+                    ]}
+                >
+                    <Text style={[
+                        tailwind`text-sm font-semibold`,
+                        selectedPeriod === p.value ? tailwind`text-white` : tailwind`text-gray-500`
+                    ]}>
+                        {p.label}
+                    </Text>
+                </TouchableOpacity>
+            ))}
         </ScrollView>
     )
 }
-
-const styles = StyleSheet.create({
-    container: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
-    pill: {
-        paddingHorizontal: 18,
-        paddingVertical: 8,
-        borderRadius: 30,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.10)',
-    },
-    pillActive: {
-        backgroundColor: '#00f59b',
-        borderColor: '#00f59b',
-        shadowColor: '#00f59b',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-        elevation: 6,
-    },
-    pillText: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
-    pillTextActive: { color: '#0a0a14', fontWeight: '700' },
-})
 
 export default DateFilterBar

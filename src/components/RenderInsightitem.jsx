@@ -1,64 +1,39 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { View, Text } from 'react-native'
 import React, { useContext } from 'react'
+import tailwind from 'twrnc'
 import { AppContext } from '../Contex/ContextApi'
 
 const RenderInsightitem = ({ item }) => {
     const { totalSpent } = useContext(AppContext)
-    const pct = totalSpent > 0 ? Math.round((item.amount / totalSpent) * 100) : 0
-    const catColor = item.category?.color || '#6b7280'
+    const amount = Number(item.amount)
+    const percentage = totalSpent > 0 ? ((amount / totalSpent) * 100).toFixed(0) : 0
 
     return (
-        <View style={styles.row}>
-            {/* Colored dot indicator */}
-            <View style={[styles.dot, { backgroundColor: catColor }]} />
-
-            {/* Category name */}
-            <Text style={styles.catName} numberOfLines={1}>{item.category?.name}</Text>
-
+        <View style={tailwind`px-5 mt-4`}>
+            <View style={tailwind`flex-row justify-between items-center mb-1`}>
+                <View style={tailwind`flex-row items-center`}>
+                    <View style={[
+                        tailwind`w-3 h-3 rounded-full mr-3`,
+                        { backgroundColor: item.category.color }
+                    ]} />
+                    <Text style={tailwind`text-base text-gray-700 font-medium`}>{item.category?.name}</Text>
+                </View>
+                <View style={tailwind`items-end`}>
+                    <Text style={tailwind`font-bold text-gray-900`}>${amount.toFixed(2)}</Text>
+                    <Text style={tailwind`text-xs text-gray-400`}>{percentage}%</Text>
+                </View>
+            </View>
             {/* Progress bar */}
-            <View style={styles.barBg}>
-                <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: catColor }]} />
+            <View style={tailwind`bg-gray-200 rounded-full h-2 mb-4`}>
+                <View
+                    style={[
+                        tailwind`h-2 rounded-full`,
+                        { width: `${percentage}%`, backgroundColor: item.category.color }
+                    ]}
+                />
             </View>
-
-            {/* % badge */}
-            <View style={[styles.pctBadge, { backgroundColor: catColor + '22', borderColor: catColor + '55' }]}>
-                <Text style={[styles.pctText, { color: catColor }]}>{pct}%</Text>
-            </View>
-
-            {/* Amount */}
-            <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
         </View>
     )
 }
-
-const styles = StyleSheet.create({
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-    },
-    dot: { width: 10, height: 10, borderRadius: 5 },
-    catName: { color: '#f1f5f9', fontWeight: '600', fontSize: 13, width: 80 },
-    barBg: {
-        flex: 1,
-        height: 6,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 3,
-        overflow: 'hidden',
-    },
-    barFill: { height: 6, borderRadius: 3, minWidth: 4 },
-    pctBadge: {
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-    },
-    pctText: { fontSize: 10, fontWeight: '700' },
-    amount: { color: '#f1f5f9', fontWeight: '700', fontSize: 13, width: 70, textAlign: 'right' },
-})
 
 export default RenderInsightitem
