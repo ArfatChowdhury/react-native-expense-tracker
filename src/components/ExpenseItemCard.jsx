@@ -1,94 +1,68 @@
-import { Alert, Animated, Text, TouchableOpacity, View } from 'react-native';
-import React, { useRef, useState } from 'react';
-import tailwind from 'twrnc';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  Alert, Animated, StyleSheet, Text,
+  TouchableOpacity, View
+} from 'react-native'
+import React, { useRef, useState } from 'react'
+import { Ionicons } from '@expo/vector-icons'
 
-const SWIPE_THRESHOLD = 80;
+const SWIPE_THRESHOLD = 80
 
 const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
-  const translateX = useRef(new Animated.Value(0)).current;
-  const [swiped, setSwiped] = useState(false);
-  const [startX, setStartX] = useState(0);
+  const translateX = useRef(new Animated.Value(0)).current
+  const [swiped, setSwiped] = useState(false)
+  const [startX, setStartX] = useState(0)
 
-  const handleTouchStart = (e) => {
-    setStartX(e.nativeEvent.pageX);
-  };
+  const handleTouchStart = (e) => setStartX(e.nativeEvent.pageX)
 
   const handleTouchMove = (e) => {
-    const diff = e.nativeEvent.pageX - startX;
+    const diff = e.nativeEvent.pageX - startX
     if (diff < 0) {
-      // Only allow swiping left
       Animated.timing(translateX, {
         toValue: Math.max(diff, -140),
         duration: 0,
         useNativeDriver: true,
-      }).start();
+      }).start()
     }
-  };
+  }
 
   const handleTouchEnd = (e) => {
-    const diff = e.nativeEvent.pageX - startX;
+    const diff = e.nativeEvent.pageX - startX
     if (diff < -SWIPE_THRESHOLD) {
-      // Snap to reveal buttons
-      Animated.spring(translateX, {
-        toValue: -140,
-        useNativeDriver: true,
-        bounciness: 4,
-      }).start();
-      setSwiped(true);
+      Animated.spring(translateX, { toValue: -140, useNativeDriver: true, bounciness: 4 }).start()
+      setSwiped(true)
     } else {
-      // Snap back
-      Animated.spring(translateX, {
-        toValue: 0,
-        useNativeDriver: true,
-        bounciness: 4,
-      }).start();
-      setSwiped(false);
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start()
+      setSwiped(false)
     }
-  };
+  }
 
   const closeSwipe = () => {
-    Animated.spring(translateX, {
-      toValue: 0,
-      useNativeDriver: true,
-    }).start();
-    setSwiped(false);
-  };
+    Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start()
+    setSwiped(false)
+  }
 
-  const handleEdit = () => {
-    closeSwipe();
-    onEdit(item);
-  };
+  const handleEditPress = () => { closeSwipe(); onEdit(item) }
+  const handleDeletePress = () => {
+    closeSwipe()
+    Alert.alert('Delete Expense', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => onDelete(item.id) }
+    ])
+  }
 
-  const handleDelete = () => {
-    closeSwipe();
-    Alert.alert(
-      'Delete Expense',
-      'Are you sure you want to delete this expense?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => onDelete(item.id) }
-      ]
-    );
-  };
+  const catColor = item.category?.color || '#6b7280'
 
   return (
-    <View style={tailwind`my-2 overflow-hidden rounded-xl`}>
-      {/* Action buttons behind card */}
-      <View style={[tailwind`absolute right-0 top-0 bottom-0 flex-row`]}>
-        <TouchableOpacity
-          onPress={handleEdit}
-          style={[tailwind`bg-blue-500 justify-center items-center`, { width: 70 }]}
-        >
-          <Ionicons name="pencil" size={20} color="white" />
-          <Text style={tailwind`text-white text-xs mt-1 font-medium`}>Edit</Text>
+    <View style={styles.wrapper}>
+      {/* Background action buttons */}
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity onPress={handleEditPress} style={styles.editBtn}>
+          <Ionicons name="pencil" size={18} color="white" />
+          <Text style={styles.actionLbl}>Edit</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleDelete}
-          style={[tailwind`bg-red-500 justify-center items-center rounded-r-xl`, { width: 70 }]}
-        >
-          <Ionicons name="trash" size={20} color="white" />
-          <Text style={tailwind`text-white text-xs mt-1 font-medium`}>Delete</Text>
+        <TouchableOpacity onPress={handleDeletePress} style={styles.deleteBtn}>
+          <Ionicons name="trash" size={18} color="white" />
+          <Text style={styles.actionLbl}>Delete</Text>
         </TouchableOpacity>
       </View>
 
@@ -100,37 +74,108 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
         onTouchEnd={handleTouchEnd}
       >
         <TouchableOpacity
-          activeOpacity={0.95}
+          activeOpacity={0.9}
           onPress={swiped ? closeSwipe : undefined}
-          style={tailwind`bg-white p-4 rounded-xl`}
+          style={styles.card}
         >
-          <View style={tailwind`flex-row items-center justify-between`}>
-            <View style={tailwind`flex-row items-center flex-1`}>
-              <View style={tailwind`w-12 h-12 rounded-xl bg-gray-100 justify-center items-center mr-4`}>
-                <Text style={tailwind`text-2xl`}>{item.icon || item.category?.icon}</Text>
-              </View>
-              <View style={tailwind`flex-1`}>
-                <Text style={tailwind`text-base font-bold text-gray-800`}>{item.title}</Text>
-                <View style={[
-                  tailwind`mt-1 px-2 py-0.5 rounded-lg self-start`,
-                  { backgroundColor: item.category?.color || '#e5e7eb' }
-                ]}>
-                  <Text style={tailwind`text-xs font-bold text-gray-700`}>
-                    {item.category?.name || 'Uncategorized'}
-                  </Text>
-                </View>
+          {/* Left color strip */}
+          <View style={[styles.colorStrip, { backgroundColor: catColor }]} />
+
+          <View style={styles.row}>
+            {/* Category icon */}
+            <View style={[styles.iconBox, { backgroundColor: catColor + '25' }]}>
+              <Text style={{ fontSize: 20 }}>{item.icon || item.category?.icon || '💸'}</Text>
+            </View>
+
+            {/* Details */}
+            <View style={styles.details}>
+              <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
+              <View style={[styles.catBadge, { backgroundColor: catColor + '22', borderColor: catColor + '60' }]}>
+                <Text style={[styles.catText, { color: catColor }]}>{item.category?.name || 'Uncategorized'}</Text>
               </View>
             </View>
 
-            <View style={tailwind`items-end`}>
-              <Text style={tailwind`text-base font-bold text-gray-900`}>-${item.amount}</Text>
-              <Text style={tailwind`text-xs text-gray-400 mt-0.5`}>{item.date}</Text>
+            {/* Amount + date */}
+            <View style={styles.right}>
+              <Text style={styles.amount}>-${item.amount}</Text>
+              <Text style={styles.date}>{item.date}</Text>
             </View>
           </View>
         </TouchableOpacity>
       </Animated.View>
     </View>
-  );
-};
+  )
+}
 
-export default ExpenseItemCard;
+const styles = StyleSheet.create({
+  wrapper: {
+    marginBottom: 8,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+
+  actionsContainer: {
+    position: 'absolute',
+    right: 0, top: 0, bottom: 0,
+    flexDirection: 'row',
+  },
+  editBtn: {
+    width: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#2563eb',
+    gap: 3,
+  },
+  deleteBtn: {
+    width: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#dc2626',
+    borderTopRightRadius: 14,
+    borderBottomRightRadius: 14,
+    gap: 3,
+  },
+  actionLbl: { color: '#fff', fontSize: 10, fontWeight: '700' },
+
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#161b2e',   // solid dark — avoids Android transparency issues
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
+  colorStrip: { width: 4, alignSelf: 'stretch' },
+
+  row: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 12,
+  },
+  iconBox: {
+    width: 44, height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  details: { flex: 1, marginRight: 8 },
+  title: { color: '#f1f5f9', fontWeight: '700', fontSize: 14, marginBottom: 5 },
+  catBadge: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+  },
+  catText: { fontSize: 10, fontWeight: '700' },
+
+  right: { alignItems: 'flex-end' },
+  amount: { color: '#ff5a5a', fontWeight: '800', fontSize: 15, marginBottom: 3 },
+  date: { color: '#475569', fontSize: 11 },
+})
+
+export default ExpenseItemCard

@@ -1,6 +1,8 @@
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native'
+import {
+    ActivityIndicator, StatusBar, StyleSheet,
+    Text, TouchableOpacity, View
+} from 'react-native'
 import React, { useState } from 'react'
-import tailwind from 'twrnc'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import * as WebBrowser from 'expo-web-browser'
@@ -10,117 +12,188 @@ import { auth } from '../services/firebase'
 
 WebBrowser.maybeCompleteAuthSession()
 
-/**
- * LoginScreen
- *
- * Currently shows the UI for Google Sign-In.
- * To activate real authentication:
- *
- * 1. Follow the setup steps in src/services/firebase.js
- * 2. Uncomment the import and call below:
- *    import { signInWithGoogle } from '../services/firestoreService'
- * 3. Replace handleGoogleSignIn body with:
- *    const userCredential = await signInWithGoogle()
- *    // Navigation is handled automatically by the auth gate in AppNavigator
- */
+const FEATURES = [
+    { icon: 'wallet-outline', text: 'Track expenses & income in one place' },
+    { icon: 'pie-chart-outline', text: 'Visual spending insights by category' },
+    { icon: 'shield-checkmark-outline', text: 'Cloud sync — data safe across devices' },
+    { icon: 'trending-up-outline', text: 'Set budgets & hit your goals' },
+]
 
 const LoginScreen = ({ onSkip }) => {
     const [loading, setLoading] = useState(false)
 
-    // Using exact web client ID. Note: For a real Expo Go / EAS build, you usually need
-    // an explicitly created iOS/Android client ID or an Expo proxy setup.
-    // For this example, we assume the web client ID from your env vars mapped via proxy.
-    const webClientId = process.env.EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID || 'missing-client-id';
-    const androidClientId = process.env.EXPO_PUBLIC_FIREBASE_ANDROID_CLIENT_ID || webClientId;
+    const webClientId = process.env.EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID || 'missing-client-id'
+    const androidClientId = process.env.EXPO_PUBLIC_FIREBASE_ANDROID_CLIENT_ID || webClientId
 
     const [request, response, promptAsync] = Google.useAuthRequest({
-        webClientId: webClientId,
-        androidClientId: androidClientId,
+        webClientId,
+        androidClientId,
         iosClientId: process.env.EXPO_PUBLIC_FIREBASE_IOS_CLIENT_ID || webClientId,
         expoClientId: webClientId,
-    });
+    })
 
     React.useEffect(() => {
         if (response?.type === 'success') {
-            const { id_token } = response.params;
-            const credential = GoogleAuthProvider.credential(id_token);
-            setLoading(true);
+            const { id_token } = response.params
+            const credential = GoogleAuthProvider.credential(id_token)
+            setLoading(true)
             signInWithCredential(auth, credential)
-                .then(() => {
-                    // Navigation handled automatically by AppNavigator's onAuthStateChanged observer
-                })
                 .catch((e) => {
                     console.log('Firebase credential auth error:', e)
                     alert('Sign in failed. Check console for details.')
                     setLoading(false)
                 })
         }
-    }, [response]);
+    }, [response])
 
     const handleGoogleSignIn = () => {
         if (!process.env.EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID) {
-            alert('Missing EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID in your .env file.\n\nPlease check src/services/firebase.js for setup steps.')
-            return;
+            alert('Missing EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID in your .env file.')
+            return
         }
-        promptAsync();
+        promptAsync()
     }
 
     return (
-        <LinearGradient
-            colors={['#0f172a', '#1e293b', '#0f3460']}
-            style={tailwind`flex-1 justify-between px-8 py-16`}
-        >
-            {/* Logo & Branding */}
-            <View style={tailwind`items-center mt-12`}>
-                <View style={tailwind`bg-green-500 w-24 h-24 rounded-3xl justify-center items-center mb-6 shadow-lg`}>
-                    <Text style={tailwind`text-5xl`}>💰</Text>
+        <View style={styles.root}>
+            <StatusBar barStyle="light-content" backgroundColor="#0a0a14" />
+            <LinearGradient colors={['#0a0a14', '#0d1320', '#0a1628']} style={StyleSheet.absoluteFill} />
+
+            {/* Background glow accent */}
+            <View style={styles.glowTop} />
+            <View style={styles.glowBottom} />
+
+            {/* Logo */}
+            <View style={styles.logoSection}>
+                <View style={styles.logoWrap}>
+                    <LinearGradient
+                        colors={['#00f59b', '#00d4aa']}
+                        style={styles.logoGradient}
+                    >
+                        <Text style={styles.logoEmoji}>💰</Text>
+                    </LinearGradient>
+                    {/* Glow ring */}
+                    <View style={styles.logoGlow} />
                 </View>
-                <Text style={tailwind`text-4xl font-bold text-white`}>Wallety</Text>
-                <Text style={tailwind`text-base text-gray-400 mt-2 text-center`}>
-                    Track your money.{'\n'}Build your future.
-                </Text>
+                <Text style={styles.appName}>Wallety</Text>
+                <Text style={styles.appTagline}>Track your money.{'\n'}Build your future.</Text>
             </View>
 
-            {/* Feature highlights */}
-            <View style={tailwind`gap-3`}>
-                {[
-                    { icon: 'wallet-outline', text: 'Track expenses & income in one place' },
-                    { icon: 'pie-chart-outline', text: 'Visual spending insights by category' },
-                    { icon: 'shield-checkmark-outline', text: 'Cloud sync — data safe across devices' },
-                    { icon: 'trending-up-outline', text: 'Set budgets & hit your goals' },
-                ].map((f, i) => (
-                    <View key={i} style={tailwind`flex-row items-center`}>
-                        <View style={tailwind`bg-green-500 bg-opacity-20 w-10 h-10 rounded-full justify-center items-center mr-4`}>
-                            <Ionicons name={f.icon} size={20} color="#4ade80" />
+            {/* Feature list */}
+            <View style={styles.featuresSection}>
+                {FEATURES.map((f, i) => (
+                    <View key={i} style={styles.featureRow}>
+                        <View style={styles.featureIconWrap}>
+                            <Ionicons name={f.icon} size={18} color="#00f59b" />
                         </View>
-                        <Text style={tailwind`text-gray-300 text-sm flex-1`}>{f.text}</Text>
+                        <Text style={styles.featureText}>{f.text}</Text>
                     </View>
                 ))}
             </View>
 
             {/* Buttons */}
-            <View style={tailwind`gap-4`}>
+            <View style={styles.btnSection}>
                 <TouchableOpacity
                     onPress={handleGoogleSignIn}
                     disabled={loading}
-                    style={tailwind`bg-white rounded-2xl py-4 flex-row justify-center items-center`}
+                    style={styles.googleBtn}
+                    activeOpacity={0.85}
                 >
                     {loading ? (
-                        <ActivityIndicator color="#1a1a1a" />
+                        <ActivityIndicator color="#111827" />
                     ) : (
                         <>
-                            <Text style={tailwind`text-2xl mr-3`}>🔵</Text>
-                            <Text style={tailwind`text-gray-900 font-bold text-base`}>Continue with Google</Text>
+                            <Text style={styles.googleG}>G</Text>
+                            <Text style={styles.googleBtnText}>Continue with Google</Text>
                         </>
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={onSkip} style={tailwind`items-center py-3`}>
-                    <Text style={tailwind`text-gray-400 text-sm`}>Skip for now — use offline</Text>
+                <TouchableOpacity onPress={onSkip} style={styles.skipBtn}>
+                    <Text style={styles.skipText}>Skip for now — use offline</Text>
                 </TouchableOpacity>
             </View>
-        </LinearGradient>
+        </View>
     )
 }
+
+const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: '#0a0a14' },
+
+    glowTop: {
+        position: 'absolute',
+        top: -80, left: '20%',
+        width: 300, height: 300,
+        borderRadius: 150,
+        backgroundColor: 'rgba(0,245,155,0.08)',
+    },
+    glowBottom: {
+        position: 'absolute',
+        bottom: -60, right: '10%',
+        width: 220, height: 220,
+        borderRadius: 110,
+        backgroundColor: 'rgba(96,165,250,0.07)',
+    },
+
+    logoSection: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
+    logoWrap: { position: 'relative', marginBottom: 20, alignItems: 'center', justifyContent: 'center' },
+    logoGradient: {
+        width: 90, height: 90,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#00f59b',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 16,
+    },
+    logoGlow: {
+        position: 'absolute',
+        width: 110, height: 110,
+        borderRadius: 34,
+        borderWidth: 1,
+        borderColor: 'rgba(0,245,155,0.25)',
+    },
+    logoEmoji: { fontSize: 46 },
+    appName: { color: '#f1f5f9', fontSize: 42, fontWeight: '900', letterSpacing: -1, marginBottom: 10 },
+    appTagline: { color: '#94a3b8', fontSize: 16, textAlign: 'center', lineHeight: 24 },
+
+    featuresSection: {
+        paddingHorizontal: 32,
+        gap: 14,
+        marginBottom: 40,
+    },
+    featureRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    featureIconWrap: {
+        width: 38, height: 38,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0,245,155,0.12)',
+        borderWidth: 1, borderColor: 'rgba(0,245,155,0.2)',
+        justifyContent: 'center', alignItems: 'center',
+    },
+    featureText: { color: '#94a3b8', fontSize: 14, flex: 1, lineHeight: 20 },
+
+    btnSection: { paddingHorizontal: 24, paddingBottom: 48, gap: 12 },
+    googleBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        backgroundColor: '#ffffff',
+        borderRadius: 18,
+        paddingVertical: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 14,
+        elevation: 10,
+    },
+    googleG: { fontSize: 20, fontWeight: '900', color: '#4285F4' },
+    googleBtnText: { color: '#111827', fontWeight: '700', fontSize: 16 },
+
+    skipBtn: { alignItems: 'center', paddingVertical: 12 },
+    skipText: { color: '#475569', fontSize: 14 },
+})
 
 export default LoginScreen
