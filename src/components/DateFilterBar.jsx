@@ -1,6 +1,6 @@
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import React from 'react'
-import tailwind from 'twrnc'
+import { COLORS } from '../theme'
 
 const PERIODS = [
     { label: 'Today', value: 'today' },
@@ -14,22 +14,20 @@ const DateFilterBar = ({ selectedPeriod, onSelect }) => {
         <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={tailwind`px-5 py-2 gap-2`}
+            contentContainerStyle={styles.container}
         >
             {PERIODS.map(p => (
                 <TouchableOpacity
                     key={p.value}
                     onPress={() => onSelect(p.value)}
                     style={[
-                        tailwind`px-4 py-2 rounded-full border-2`,
-                        selectedPeriod === p.value
-                            ? tailwind`border-green-500 bg-green-500`
-                            : tailwind`border-gray-200 bg-white`
+                        styles.btn,
+                        selectedPeriod === p.value ? styles.btnActive : styles.btnInactive
                     ]}
                 >
                     <Text style={[
-                        tailwind`text-sm font-semibold`,
-                        selectedPeriod === p.value ? tailwind`text-white` : tailwind`text-gray-500`
+                        styles.btnText,
+                        selectedPeriod === p.value ? styles.btnTextActive : styles.btnTextInactive
                     ]}>
                         {p.label}
                     </Text>
@@ -38,5 +36,33 @@ const DateFilterBar = ({ selectedPeriod, onSelect }) => {
         </ScrollView>
     )
 }
+
+const styles = StyleSheet.create({
+    container: { paddingHorizontal: 20, py: 8, gap: 10, paddingVertical: 10, flexDirection: 'row' },
+    btn: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1.5,
+    },
+    btnActive: {
+        backgroundColor: COLORS.black,
+        borderColor: COLORS.black,
+    },
+    btnInactive: {
+        backgroundColor: COLORS.white,
+        borderColor: COLORS.border,
+    },
+    btnText: {
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    btnTextActive: {
+        color: COLORS.white,
+    },
+    btnTextInactive: {
+        color: COLORS.textSub,
+    },
+})
 
 export default DateFilterBar

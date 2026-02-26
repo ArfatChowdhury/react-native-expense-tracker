@@ -1,17 +1,24 @@
-import { Text, View } from 'react-native'
+import { Text, View, StyleSheet } from 'react-native'
 import React from 'react'
-import tailwind from 'twrnc'
+import { COLORS } from '../theme'
 
 const EmptyList = () => {
     return (
-        <View style={tailwind`flex-1 items-center justify-center py-16`}>
-            <Text style={tailwind`text-5xl mb-4`}>💸</Text>
-            <Text style={tailwind`text-lg font-bold text-gray-600`}>No transactions yet</Text>
-            <Text style={tailwind`text-sm text-gray-400 mt-1 text-center px-8`}>
+        <View style={styles.container}>
+            <Text style={styles.icon}>💸</Text>
+            <Text style={styles.title}>No transactions yet</Text>
+            <Text style={styles.subtitle}>
                 Tap "Add" below to record your first expense
             </Text>
         </View>
     )
 }
+
+const styles = StyleSheet.create({
+    container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
+    icon: { fontSize: 50, marginBottom: 15 },
+    title: { fontSize: 18, fontWeight: '800', color: COLORS.textMain },
+    subtitle: { fontSize: 13, color: COLORS.textSub, marginTop: 4, textAlign: 'center', paddingHorizontal: 40, fontWeight: '600' },
+})
 
 export default EmptyList

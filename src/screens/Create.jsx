@@ -36,7 +36,7 @@ const Create = ({ navigation, route }) => {
       title: title.trim(),
       amount: parseFloat(amount),
       category,
-      date: new Date().toLocaleDateString(),
+      date: new Date().toISOString(),
     };
 
     if (isEditing) {

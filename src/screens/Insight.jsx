@@ -1,25 +1,25 @@
-import { FlatList, Text, View } from 'react-native'
+import { FlatList, StyleSheet, Text, View, StatusBar } from 'react-native'
 import React, { useContext } from 'react'
 import { PieChart } from 'react-native-gifted-charts'
 import { AppContext } from '../Contex/ContextApi'
-import tailwind from 'twrnc'
-import RenderInsightitem from '../components/RenderInsightitem'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import { categories } from '../Data/categoriesData'
+import { COLORS, SHADOW } from '../theme'
+import RenderInsightitem from '../components/RenderInsightitem'
 
 const Insight = () => {
   const { filteredExpenses, expenses, totalSpent, totalIncome, balance } = useContext(AppContext)
-
-  const allExpenses = filteredExpenses ?? expenses
+  const allExpenses = filteredExpenses?.length > 0 ? filteredExpenses : expenses
 
   if (totalSpent === 0 || expenses.length === 0) {
     return (
-      <SafeAreaView style={tailwind`flex-1 justify-center items-center bg-gray-100`}>
-        <Text style={tailwind`text-5xl mb-4`}>📊</Text>
-        <Text style={tailwind`text-lg font-bold text-gray-600`}>No data yet</Text>
-        <Text style={tailwind`text-sm text-gray-400 mt-1`}>Add expenses to see insights</Text>
+      <SafeAreaView style={styles.root}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>📊</Text>
+          <Text style={styles.emptyTitle}>Insights are empty</Text>
+          <Text style={styles.emptySub}>Add some transactions to see your breakdown</Text>
+        </View>
       </SafeAreaView>
     )
   }
@@ -31,7 +31,7 @@ const Insight = () => {
     return acc;
   }, {});
 
-  const periodTotal = allExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
+  const periodTotal = Object.values(spendingByCategory).reduce((sum, val) => sum + val, 0)
 
   const chartData = Object.keys(spendingByCategory).map((categoryName) => {
     const amount = spendingByCategory[categoryName]
@@ -39,7 +39,7 @@ const Insight = () => {
     const categoryInfo = categories.find((cat) => cat.name === categoryName)
     return {
       value: percentage,
-      color: categoryInfo?.color || '#6b7280',
+      color: categoryInfo?.color || COLORS.gray400,
       text: `${percentage}%`,
       label: categoryName
     }
@@ -52,68 +52,105 @@ const Insight = () => {
       id: categoryName,
       category: {
         name: categoryName,
-        color: categoryInfo?.color || '#6b7280'
+        color: categoryInfo?.color || COLORS.gray400
       },
       amount
     }
   }).sort((a, b) => b.amount - a.amount)
 
-  return (
-    <SafeAreaView style={tailwind`flex-1 bg-gray-100`}>
-      <View style={tailwind`px-5 pt-3 pb-1`}>
-        <Text style={tailwind`text-2xl font-bold text-gray-900`}>Insights</Text>
-        <Text style={tailwind`text-sm text-gray-400 mt-1`}>Your spending breakdown</Text>
+  const ListHeader = () => (
+    <View style={styles.header}>
+      <Text style={styles.title}>History & Insights</Text>
+
+      {/* Dynamic Summary Cards */}
+      <View style={styles.summaryRow}>
+        <View style={[styles.summaryCard, { backgroundColor: COLORS.income }]}>
+          <Ionicons name="trending-up" size={16} color="white" />
+          <Text style={styles.summaryValue}>${totalIncome.toFixed(0)}</Text>
+          <Text style={styles.summaryLabel}>Income</Text>
+        </View>
+        <View style={[styles.summaryCard, { backgroundColor: COLORS.expense }]}>
+          <Ionicons name="trending-down" size={16} color="white" />
+          <Text style={styles.summaryValue}>${totalSpent.toFixed(0)}</Text>
+          <Text style={styles.summaryLabel}>Spent</Text>
+        </View>
+        <View style={[styles.summaryCard, { backgroundColor: COLORS.card }]}>
+          <Ionicons name="wallet" size={16} color="white" />
+          <Text style={styles.summaryValue}>${Math.abs(balance).toFixed(0)}</Text>
+          <Text style={styles.summaryLabel}>Balance</Text>
+        </View>
       </View>
 
-      {/* Income vs Expenses summary */}
-      <View style={tailwind`flex-row px-5 gap-3 mt-3`}>
-        <LinearGradient colors={['#052e16', '#166534']} style={tailwind`flex-1 rounded-2xl p-4 flex-row items-center`}>
-          <Ionicons name="arrow-down" size={18} color="#4ade80" />
-          <View style={tailwind`ml-2`}>
-            <Text style={tailwind`text-green-300 text-xs`}>Income</Text>
-            <Text style={tailwind`text-white font-bold`}>${totalIncome.toFixed(2)}</Text>
-          </View>
-        </LinearGradient>
-        <LinearGradient colors={['#450a0a', '#7f1d1d']} style={tailwind`flex-1 rounded-2xl p-4 flex-row items-center`}>
-          <Ionicons name="arrow-up" size={18} color="#f87171" />
-          <View style={tailwind`ml-2`}>
-            <Text style={tailwind`text-red-300 text-xs`}>Spent</Text>
-            <Text style={tailwind`text-white font-bold`}>${totalSpent.toFixed(2)}</Text>
-          </View>
-        </LinearGradient>
-        <LinearGradient
-          colors={balance >= 0 ? ['#1e3a5f', '#1e40af'] : ['#450a0a', '#7f1d1d']}
-          style={tailwind`flex-1 rounded-2xl p-4 flex-row items-center`}
-        >
-          <Ionicons name="wallet" size={18} color={balance >= 0 ? '#93c5fd' : '#f87171'} />
-          <View style={tailwind`ml-2`}>
-            <Text style={[tailwind`text-xs`, { color: balance >= 0 ? '#93c5fd' : '#f87171' }]}>Balance</Text>
-            <Text style={tailwind`text-white font-bold`}>${Math.abs(balance).toFixed(2)}</Text>
-          </View>
-        </LinearGradient>
-      </View>
-
-      {/* Pie Chart */}
-      <View style={tailwind`items-center my-5`}>
+      {/* Chart Section */}
+      <View style={styles.chartWrapper}>
         <PieChart
           donut
           data={chartData}
-          radius={120}
-          textColor="gray"
-          fontWeight="bold"
-          textSize={12}
-          showTextBackground={false}
+          radius={110}
+          innerRadius={80}
+          centerLabelComponent={() => (
+            <View style={{ alignItems: 'center' }}>
+              <Text style={styles.chartTotal}>${periodTotal.toFixed(0)}</Text>
+              <Text style={styles.chartLabel}>Total</Text>
+            </View>
+          )}
         />
       </View>
 
+      <Text style={styles.sectionTitle}>Category Breakdown</Text>
+    </View>
+  )
+
+  return (
+    <SafeAreaView style={styles.root}>
+      <StatusBar barStyle="dark-content" />
       <FlatList
         data={flatListData}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={<ListHeader />}
         renderItem={({ item }) => <RenderInsightitem item={item} />}
-        contentContainerStyle={tailwind`pb-6`}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
   )
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: COLORS.background },
+  listContent: { paddingBottom: 120 },
+  header: { paddingHorizontal: 20, paddingTop: 10 },
+  title: { fontSize: 28, fontWeight: '800', color: COLORS.textMain, marginBottom: 20 },
+
+  summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
+  summaryCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 20,
+    ...SHADOW.sm,
+  },
+  summaryValue: { color: 'white', fontSize: 18, fontWeight: '800', marginTop: 8 },
+  summaryLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600', marginTop: 2 },
+
+  chartWrapper: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: COLORS.white,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 30,
+    ...SHADOW.sm,
+  },
+  chartTotal: { fontSize: 24, fontWeight: '900', color: COLORS.textMain },
+  chartLabel: { fontSize: 12, color: COLORS.textSub, fontWeight: '600' },
+
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textMain, marginBottom: 15 },
+
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  emptyIcon: { fontSize: 64, marginBottom: 20 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textMain },
+  emptySub: { fontSize: 14, color: COLORS.textSub, marginTop: 4, textAlign: 'center' },
+})
 
 export default Insight
