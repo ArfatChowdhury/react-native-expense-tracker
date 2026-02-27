@@ -1,6 +1,6 @@
 import { ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import React from 'react'
-import { COLORS } from '../theme'
+import { COLORS, SHADOW } from '../theme'
 
 const PERIODS = [
     { label: 'Today', value: 'today' },
@@ -38,24 +38,26 @@ const DateFilterBar = ({ selectedPeriod, onSelect }) => {
 }
 
 const styles = StyleSheet.create({
-    container: { paddingHorizontal: 20, py: 8, gap: 10, paddingVertical: 10, flexDirection: 'row' },
+    container: { paddingHorizontal: 20, gap: 12, paddingVertical: 15, flexDirection: 'row' },
     btn: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 12,
-        borderWidth: 1.5,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 16,
+        borderWidth: 1,
     },
     btnActive: {
         backgroundColor: COLORS.black,
         borderColor: COLORS.black,
+        ...SHADOW.md,
     },
     btnInactive: {
         backgroundColor: COLORS.white,
         borderColor: COLORS.border,
+        ...SHADOW.sm,
     },
     btnText: {
-        fontSize: 13,
-        fontWeight: '700',
+        fontSize: 14,
+        fontWeight: '800',
     },
     btnTextActive: {
         color: COLORS.white,

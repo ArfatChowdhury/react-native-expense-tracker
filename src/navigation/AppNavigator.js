@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     width: 65,
     height: 65,
     borderRadius: 33,
-    backgroundColor: "#1E1B4B",
+    backgroundColor: "#000000ff",
     justifyContent: "center",
     alignItems: "center",
     marginTop: -40, // Raise properly into the notch

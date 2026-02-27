@@ -6,9 +6,12 @@ import { AppContext } from '../Contex/ContextApi'
 import { COLORS, SHADOW } from '../theme'
 import ExpenseItemCard from '../components/ExpenseItemCard'
 import EmptyList from '../components/EmptyList'
+import DateFilterBar from '../components/DateFilterBar'
 
 const Home = ({ navigation }) => {
   const { totalSpent, balance, expenses, handleEdit, handleDelete } = useContext(AppContext)
+
+  const [selectedPeriod, setSelectedPeriod] = React.useState('all')
 
   const handleEditExpense = (item) => {
     handleEdit(item)
@@ -35,12 +38,6 @@ const Home = ({ navigation }) => {
             <Ionicons name="notifications-outline" size={22} color={COLORS.textMain} />
             <View style={styles.dot} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => navigation.navigate('SettingsTab')}
-          >
-            <Ionicons name="settings-outline" size={22} color={COLORS.textMain} />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -56,6 +53,11 @@ const Home = ({ navigation }) => {
           </View>
         </View>
       </View>
+
+      <DateFilterBar
+        selectedPeriod={selectedPeriod}
+        onSelect={setSelectedPeriod}
+      />
 
       <Text style={styles.sectionTitle}>Recent Transactions</Text>
     </View>

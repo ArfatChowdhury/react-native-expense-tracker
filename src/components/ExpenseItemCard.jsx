@@ -131,10 +131,9 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
 const styles = StyleSheet.create({
   wrapper: {
     marginHorizontal: 20,
-    marginVertical: 6,
-    height: 80,
-    borderRadius: 16,
-    overflow: 'hidden',
+    marginVertical: 8,
+    height: 85,
+    borderRadius: 20,
   },
   actions: {
     position: 'absolute',
@@ -165,8 +164,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 16,
-    ...SHADOW.sm,
+    borderRadius: 20,
+    ...SHADOW.md,
   },
   cardContent: {
     flexDirection: 'row',
