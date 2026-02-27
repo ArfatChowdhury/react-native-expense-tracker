@@ -7,7 +7,7 @@ import { categories } from '../Data/categoriesData'
 import { COLORS, SHADOW } from '../theme'
 
 const Budget = () => {
-    const { expenses, budgets, setBudget } = useContext(AppContext)
+    const { expenses, budgets, setBudget, categoriesList, currencySymbol } = useContext(AppContext)
     const [editingCat, setEditingCat] = useState(null)
     const [inputValue, setInputValue] = useState('')
 
@@ -72,7 +72,7 @@ const Budget = () => {
         setInputValue('')
     }
 
-    const allCategories = categories.map(cat => ({
+    const allCategories = categoriesList.map(cat => ({
         ...cat,
         spent: spentByCategory[cat.name] || 0,
         budget: budgets?.[cat.name] || 0,
@@ -95,10 +95,10 @@ const Budget = () => {
                         <View>
                             <Text style={styles.catName}>{item.name}</Text>
                             {isOver ? (
-                                <Text style={styles.overText}>⚠️ Exceeded by ${(spent - budget).toFixed(0)}</Text>
+                                <Text style={styles.overText}>⚠️ Exceeded by {currencySymbol}${(spent - budget).toFixed(0)}</Text>
                             ) : (
                                 <Text style={styles.remainingText}>
-                                    {budget > 0 ? `$${(budget - spent).toFixed(0)} left` : 'No limit set'}
+                                    {budget > 0 ? `${currencySymbol}${(budget - spent).toFixed(0)} left` : 'No limit set'}
                                 </Text>
                             )}
                         </View>
@@ -133,8 +133,8 @@ const Budget = () => {
 
                 <View style={styles.progressSection}>
                     <View style={styles.progressLabels}>
-                        <Text style={styles.progressVal}>${spent.toFixed(0)} spent</Text>
-                        <Text style={styles.limitVal}>of ${budget.toFixed(0)} limit</Text>
+                        <Text style={styles.progressVal}>{currencySymbol}{spent.toFixed(0)} spent</Text>
+                        <Text style={styles.limitVal}>of {currencySymbol}{budget.toFixed(0)} limit</Text>
                     </View>
                     <View style={styles.progressBarBg}>
                         <View style={[
@@ -157,7 +157,7 @@ const Budget = () => {
 
             <FlatList
                 data={allCategories}
-                keyExtractor={item => item.name}
+                keyExtractor={(item, index) => item.name + index}
                 renderItem={renderItem}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}

@@ -5,6 +5,17 @@ import { Ionicons } from '@expo/vector-icons'
 import { AppContext } from '../Contex/ContextApi';
 import { COLORS, SHADOW } from '../theme';
 
+const INCOME_SOURCES = [
+  { name: 'Salary', icon: '💼' },
+  { name: 'Freelance', icon: '💻' },
+  { name: 'Business', icon: '🏢' },
+  { name: 'Investment', icon: '📈' },
+  { name: 'Gift', icon: '🎁' },
+  { name: 'Rental', icon: '🏠' },
+  { name: 'Bonus', icon: '🎯' },
+  { name: 'Other', icon: '💰' },
+]
+
 const Create = ({ navigation, route }) => {
   const [activeField, setActiveField] = useState(null);
   const [type, setType] = useState('expense'); // 'income' or 'expense'
@@ -19,14 +30,14 @@ const Create = ({ navigation, route }) => {
 
   const handleSubmit = () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a title');
+      Alert.alert('Error', 'Please enter a title or source');
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
-    if (!category?.name) {
+    if (type === 'expense' && !category?.name) {
       Alert.alert('Error', 'Please select a category');
       return;
     }
@@ -35,15 +46,19 @@ const Create = ({ navigation, route }) => {
       type,
       title: title.trim(),
       amount: parseFloat(amount),
-      category,
+      category: type === 'expense' ? category : { name: title.trim(), icon: '💰' },
       date: new Date().toISOString(),
     };
 
     if (isEditing) {
-      handleUpdateTransaction(navigation);
+      handleUpdateTransaction(navigation, transactionData);
     } else {
       handleAddTransaction(navigation, transactionData);
     }
+  }
+
+  const handleSelectIncomeSource = (src) => {
+    setTitle(src.name);
   }
 
   useEffect(() => {
@@ -100,38 +115,77 @@ const Create = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Title Input */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Title</Text>
-          <TextInput
-            placeholder="e.g. Grocery Shopping"
-            style={[styles.input, activeField === 'title' && styles.inputActive]}
-            onFocus={() => setActiveField('title')}
-            onBlur={() => setActiveField(null)}
-            value={title}
-            onChangeText={setTitle}
-            placeholderTextColor={COLORS.gray400}
-          />
-        </View>
-
-        {/* Category Picker */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Category</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Category')}
-            style={[styles.input, !category?.name && styles.inputError]}
-          >
-            <View style={styles.categoryRow}>
-              <View style={styles.catInfo}>
-                <Text style={styles.catIcon}>{category?.icon || '📁'}</Text>
-                <Text style={[styles.catName, !category?.name && { color: COLORS.gray400 }]}>
-                  {category?.name || 'Select Category'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.gray400} />
+        {/* Dynamic Section based on Type */}
+        {type === 'expense' ? (
+          <>
+            {/* Title Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Title</Text>
+              <TextInput
+                placeholder="e.g. Grocery Shopping"
+                style={[styles.input, activeField === 'title' && styles.inputActive]}
+                onFocus={() => setActiveField('title')}
+                onBlur={() => setActiveField(null)}
+                value={title}
+                onChangeText={setTitle}
+                placeholderTextColor={COLORS.gray400}
+              />
             </View>
-          </TouchableOpacity>
-        </View>
+
+            {/* Category Picker */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Category</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Category')}
+                style={[styles.input, !category?.name && styles.inputError]}
+              >
+                <View style={styles.categoryRow}>
+                  <View style={styles.catInfo}>
+                    <Text style={styles.catIcon}>{category?.icon || '📁'}</Text>
+                    <Text style={[styles.catName, !category?.name && { color: COLORS.gray400 }]}>
+                      {category?.name || 'Select Category'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={COLORS.gray400} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Income Source</Text>
+              <View style={styles.sourceGrid}>
+                {INCOME_SOURCES.map(src => (
+                  <TouchableOpacity
+                    key={src.name}
+                    onPress={() => handleSelectIncomeSource(src)}
+                    style={[
+                      styles.sourceChip,
+                      title === src.name ? styles.sourceChipActive : styles.sourceChipInactive
+                    ]}
+                  >
+                    <Text style={styles.sourceEmoji}>{src.icon}</Text>
+                    <Text style={[styles.sourceLabel, title === src.name && styles.sourceLabelActive]}>{src.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Custom Source</Text>
+              <TextInput
+                placeholder="e.g. Side Project"
+                style={[styles.input, activeField === 'title' && styles.inputActive]}
+                onFocus={() => setActiveField('title')}
+                onBlur={() => setActiveField(null)}
+                value={title}
+                onChangeText={setTitle}
+                placeholderTextColor={COLORS.gray400}
+              />
+            </View>
+          </>
+        )}
 
         {/* Submit Button */}
         <TouchableOpacity
@@ -159,7 +213,7 @@ const Create = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.background },
-  container: { paddingHorizontal: 20, paddingBottom: 40 },
+  container: { paddingHorizontal: 20, paddingBottom: 100 },
 
   header: {
     flexDirection: 'row',
@@ -168,45 +222,51 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   backBtn: {
-    width: 40, height: 40,
-    borderRadius: 20,
+    width: 44, height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.gray100,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textMain },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textMain, letterSpacing: -0.5 },
 
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: COLORS.gray100,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 6,
-    marginBottom: 30,
+    marginBottom: 35,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   toggleBtn: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 16,
   },
-  toggleBtnActive: { backgroundColor: COLORS.black },
-  toggleBtnActiveIncome: { backgroundColor: COLORS.income },
-  toggleText: { fontSize: 14, fontWeight: '700', color: COLORS.textSub },
+  toggleBtnActive: { backgroundColor: COLORS.black, ...SHADOW.sm },
+  toggleBtnActiveIncome: { backgroundColor: COLORS.income, ...SHADOW.sm },
+  toggleText: { fontSize: 14, fontWeight: '800', color: COLORS.textSub },
   toggleTextActive: { color: COLORS.white },
 
-  inputGroup: { marginBottom: 24 },
-  label: { fontSize: 14, fontWeight: '700', color: COLORS.textMain, marginBottom: 8 },
+  inputGroup: { marginBottom: 30 },
+  label: { fontSize: 14, fontWeight: '800', color: COLORS.gray500, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
 
   input: {
     backgroundColor: COLORS.white,
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 18,
     fontSize: 16,
+    fontWeight: '600',
     color: COLORS.textMain,
+    ...SHADOW.sm,
   },
-  inputActive: { borderColor: COLORS.black },
+  inputActive: { borderColor: COLORS.black, ...SHADOW.md },
   inputError: { borderColor: '#FEE2E2' },
 
   amountInputWrap: {
@@ -215,38 +275,51 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    borderRadius: 16,
-    paddingHorizontal: 16,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    ...SHADOW.sm,
   },
-  currency: { fontSize: 24, fontWeight: '800', marginRight: 8, color: COLORS.textMain },
+  currency: { fontSize: 28, fontWeight: '900', marginRight: 10, color: COLORS.black },
   amountInput: {
     flex: 1,
-    paddingVertical: 16,
-    fontSize: 32,
+    paddingVertical: 20,
+    fontSize: 42,
     fontWeight: '900',
-    color: COLORS.textMain,
+    color: COLORS.black,
   },
 
   categoryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   catInfo: { flexDirection: 'row', alignItems: 'center' },
-  catIcon: { fontSize: 24, marginRight: 12 },
-  catName: { fontSize: 16, fontWeight: '600', color: COLORS.textMain },
+  catIcon: { fontSize: 28, marginRight: 14 },
+  catName: { fontSize: 18, fontWeight: '700', color: COLORS.textMain },
+
+  sourceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  sourceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    backgroundColor: COLORS.white,
+  },
+  sourceChipActive: { backgroundColor: COLORS.income, borderColor: COLORS.income, ...SHADOW.sm },
+  sourceChipInactive: { borderColor: COLORS.border, backgroundColor: COLORS.white },
+  sourceEmoji: { fontSize: 18, marginRight: 8 },
+  sourceLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textSub },
+  sourceLabelActive: { color: COLORS.white },
 
   submitBtn: {
-    borderRadius: 20,
-    paddingVertical: 18,
+    borderRadius: 24,
+    paddingVertical: 20,
     alignItems: 'center',
     marginTop: 10,
     ...SHADOW.md,
   },
-  submitText: { color: COLORS.white, fontSize: 18, fontWeight: '800' },
+  submitText: { color: COLORS.white, fontSize: 18, fontWeight: '900' },
 
-  cancelBtn: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  cancelText: { color: COLORS.textSub, fontSize: 16, fontWeight: '600' },
+  cancelBtn: { paddingVertical: 16, alignItems: 'center', marginTop: 12 },
+  cancelText: { color: COLORS.textSub, fontSize: 16, fontWeight: '700' },
 })
 
 export default Create

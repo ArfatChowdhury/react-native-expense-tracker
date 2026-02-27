@@ -1,4 +1,4 @@
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar } from 'react-native'
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground } from 'react-native'
 import React, { useContext } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -9,7 +9,7 @@ import EmptyList from '../components/EmptyList'
 import DateFilterBar from '../components/DateFilterBar'
 
 const Home = ({ navigation }) => {
-  const { totalSpent, balance, expenses, handleEdit, handleDelete } = useContext(AppContext)
+  const { totalSpent, balance, expenses, allTransactions, handleEdit, handleDelete, handleDeleteIncome, categoriesWithBudget, currencySymbol } = useContext(AppContext)
 
   const [selectedPeriod, setSelectedPeriod] = React.useState('all')
 
@@ -18,11 +18,40 @@ const Home = ({ navigation }) => {
     navigation.navigate('Create')
   }
 
-  const handleDeleteExpense = (id) => {
-    Alert.alert('Delete Expense', 'Are you sure?', [
+  const handleDeleteRecord = (id, type) => {
+    Alert.alert('Delete Record', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => handleDelete(id) }
+      {
+        text: 'Delete', style: 'destructive', onPress: () => {
+          if (type === 'income') handleDeleteIncome(id);
+          else handleDelete(id);
+        }
+      }
     ])
+  }
+
+  const overBudgetCategories = categoriesWithBudget.filter(cat => cat.budgetLimit > 0 && cat.amountSpent > cat.budgetLimit)
+
+  const BudgetWarningBanner = () => {
+    if (overBudgetCategories.length === 0) return null
+    return (
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Budget')}
+        style={styles.warningBanner}
+        activeOpacity={0.9}
+      >
+        <View style={styles.warningIconBox}>
+          <Ionicons name="warning" size={24} color="#FFF" />
+        </View>
+        <View style={styles.warningTextContent}>
+          <Text style={styles.warningTitle}>Budget Alert</Text>
+          <Text style={styles.warningDesc}>
+            You have exceeded your limit in {overBudgetCategories.length} {overBudgetCategories.length === 1 ? 'category' : 'categories'}.
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
+      </TouchableOpacity>
+    )
   }
 
   const ListHeader = () => (
@@ -42,17 +71,25 @@ const Home = ({ navigation }) => {
       </View>
 
       {/* Balance Card */}
-      <View style={styles.balanceCard}>
+      <ImageBackground
+        source={require('../../assets/card-bg.jpg')}
+        style={styles.balanceCard}
+        imageStyle={{ borderRadius: 32 }}
+      >
+        <View style={styles.cardOverlay} />
         <Text style={styles.balanceLabel}>Spent so far</Text>
-        <Text style={styles.balanceAmount}>${Number(totalSpent).toFixed(2)}</Text>
+        <Text style={styles.balanceAmount}>{currencySymbol}{Number(totalSpent).toFixed(2)}</Text>
 
         <View style={styles.balanceFooter}>
           <View style={styles.footerItem}>
             <Text style={styles.footerLabel}>Remaining Balance</Text>
-            <Text style={styles.footerValue}>${Number(balance).toFixed(2)}</Text>
+            <Text style={styles.footerValue}>{currencySymbol}{Number(balance).toFixed(2)}</Text>
           </View>
         </View>
-      </View>
+      </ImageBackground>
+
+      {/* Budget Warning Banner */}
+      <BudgetWarningBanner />
 
       <DateFilterBar
         selectedPeriod={selectedPeriod}
@@ -67,14 +104,14 @@ const Home = ({ navigation }) => {
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="dark-content" />
       <FlatList
-        data={expenses}
+        data={allTransactions}
         keyExtractor={item => item.id}
         ListHeaderComponent={<ListHeader />}
         renderItem={({ item }) => (
           <ExpenseItemCard
             item={item}
             onEdit={handleEditExpense}
-            onDelete={handleDeleteExpense}
+            onDelete={handleDeleteRecord}
           />
         )}
         ListEmptyComponent={<EmptyList />}
@@ -121,12 +158,16 @@ const styles = StyleSheet.create({
   },
 
   balanceCard: {
-    backgroundColor: COLORS.card,
     borderRadius: 32,
     padding: 28,
     alignItems: 'center',
     marginBottom: 30,
+    overflow: 'hidden',
     ...SHADOW.md,
+  },
+  cardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)', // Adjust opacity for the "multiply" look
   },
   balanceLabel: { color: COLORS.gray400, fontSize: 14, fontWeight: '600' },
   balanceAmount: { color: COLORS.white, fontSize: 48, fontWeight: '900', marginTop: 8 },
@@ -150,6 +191,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     letterSpacing: -0.5,
   },
+
+  warningBanner: {
+    backgroundColor: COLORS.expense,
+    borderRadius: 24,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+    ...SHADOW.md,
+  },
+  warningIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  warningTextContent: { flex: 1 },
+  warningTitle: { fontSize: 16, fontWeight: '800', color: COLORS.white },
+  warningDesc: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginTop: 2 },
 })
 
 export default Home

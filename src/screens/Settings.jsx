@@ -1,14 +1,17 @@
 import { Alert, Share, Switch, Text, TouchableOpacity, View, StyleSheet, ScrollView, StatusBar } from 'react-native'
 import React, { useContext } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons'
 import { AppContext } from '../Contex/ContextApi'
 import { COLORS, SHADOW } from '../theme'
 
-const CURRENCIES = ['USD', 'BDT', 'EUR', 'GBP', 'INR', 'SAR', 'AED']
 
-const Settings = () => {
-    const { expenses, incomes, currency, setCurrency, setExpenses, setIncomes, isDarkMode, toggleDarkMode } = useContext(AppContext)
+const Settings = ({ navigation }) => {
+    const {
+        expenses, incomes, currency, currencySymbol, setExpenses, setIncomes,
+        isDarkMode, toggleDarkMode, recurringTransactions, setRecurringTransactions
+    } = useContext(AppContext)
 
     const handleClearAll = () => {
         Alert.alert(
@@ -22,6 +25,9 @@ const Settings = () => {
                     onPress: () => {
                         setExpenses([])
                         setIncomes([])
+                        setRecurringTransactions([])
+                        AsyncStorage.removeItem('recurringTransactions')
+                        AsyncStorage.removeItem('lastProcessedMonth')
                     }
                 }
             ]
@@ -91,36 +97,37 @@ const Settings = () => {
                     </View>
                 </View>
 
-                {/* Currency Section */}
+                {/* Preferences Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>Currency</Text>
-                    <View style={styles.currencyGrid}>
-                        {CURRENCIES.map(c => (
-                            <TouchableOpacity
-                                key={c}
-                                onPress={() => setCurrency(c)}
-                                style={[
-                                    styles.currencyBtn,
-                                    currency === c && styles.currencyBtnActive
-                                ]}
-                            >
-                                <Text style={[styles.currencyText, currency === c && styles.currencyTextActive]}>{c}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+                    <Text style={styles.sectionHeader}>Preferences</Text>
+                    <MenuItem
+                        icon="cash-outline"
+                        label="Currency"
+                        subtitle={`Currently using ${currency} (${currencySymbol})`}
+                        onPress={() => navigation.navigate('CurrencySetup', { isSettings: true })}
+                    />
+                    <MenuItem
+                        icon="moon-outline"
+                        label="Dark Mode"
+                        subtitle={isDarkMode ? 'Appearance is Dark' : 'Appearance is Light'}
+                        isSwitch
+                    />
+                </View>
+
+                {/* Recurring Items Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionHeader}>Recurring & Planning</Text>
+                    <MenuItem
+                        icon="calendar-outline"
+                        label="Recurring Items"
+                        subtitle={`${recurringTransactions.length} items auto-logged monthly`}
+                        onPress={() => navigation.navigate('RecurringManager')}
+                    />
                 </View>
 
                 {/* Actions Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>Preferences</Text>
-                    <MenuItem
-                        icon="moon-outline"
-                        label="Dark Mode"
-                        subtitle="System adaptive soon"
-                        isSwitch
-                    />
-
-                    <Text style={[styles.sectionHeader, { marginTop: 24 }]}>Data & Security</Text>
+                    <Text style={styles.sectionHeader}>Data & Security</Text>
                     <MenuItem
                         icon="cloud-download-outline"
                         label="Export Data"

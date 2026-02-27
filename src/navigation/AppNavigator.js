@@ -13,6 +13,7 @@ import Budget from "../screens/Budget"
 import Settings from "../screens/Settings"
 import Category from "../screens/Category"
 import AddIncome from "../screens/AddIncome"
+import RecurringManager from "../screens/RecurringManager"
 import LoginScreen from "../screens/LoginScreen"
 import { onAuthStateChanged } from "../services/firestoreService"
 
@@ -75,7 +76,22 @@ function MyTabs() {
 
 /* ---------------- FLOATING TAB ---------------- */
 
+import { Keyboard } from 'react-native'
+
 const FloatingTabBar = ({ state, descriptors, navigation }) => {
+  const [keyboardVisible, setKeyboardVisible] = useState(false)
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true))
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false))
+    return () => {
+      showSubscription.remove()
+      hideSubscription.remove()
+    }
+  }, [])
+
+  if (keyboardVisible) return null
+
   return (
     <View style={styles.container}>
       <NotchedBackground />
@@ -232,7 +248,16 @@ const styles = StyleSheet.create({
 
 /* ---------------- AUTH NAV ---------------- */
 
+import WelcomeScreen from "../screens/onboarding/WelcomeScreen"
+import CurrencySetup from "../screens/onboarding/CurrencySetup"
+import FixedIncomeSetup from "../screens/onboarding/FixedIncomeSetup"
+import FixedExpensesSetup from "../screens/onboarding/FixedExpensesSetup"
+import InitialBudgetSetup from "../screens/onboarding/InitialBudgetSetup"
+import { AppContext } from "../Contex/ContextApi"
+import { useContext } from "react"
+
 const AppNavigator = () => {
+  const { isFirstLaunch } = useContext(AppContext)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
 
@@ -244,17 +269,25 @@ const AppNavigator = () => {
     return unsubscribe
   }, [])
 
-  if (isInitializing) {
+  if (isInitializing || isFirstLaunch === null) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#16a34a" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: '#F8F9FA' }}>
+        <ActivityIndicator size="large" color="#000" />
       </View>
     )
   }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {!isAuthenticated ? (
+      {isFirstLaunch ? (
+        <>
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
+          <Stack.Screen name="CurrencySetup" component={CurrencySetup} />
+          <Stack.Screen name="FixedIncomeSetup" component={FixedIncomeSetup} />
+          <Stack.Screen name="FixedExpensesSetup" component={FixedExpensesSetup} />
+          <Stack.Screen name="InitialBudgetSetup" component={InitialBudgetSetup} />
+        </>
+      ) : !isAuthenticated ? (
         <Stack.Screen name="Login">
           {(props) => (
             <LoginScreen {...props} onSkip={() => setIsAuthenticated(true)} />
@@ -265,6 +298,7 @@ const AppNavigator = () => {
           <Stack.Screen name="BottomTabs" component={MyTabs} />
           <Stack.Screen name="Category" component={Category} />
           <Stack.Screen name="AddIncome" component={AddIncome} />
+          <Stack.Screen name="RecurringManager" component={RecurringManager} />
         </>
       )}
     </Stack.Navigator>

@@ -38,17 +38,17 @@ const DateFilterBar = ({ selectedPeriod, onSelect }) => {
 }
 
 const styles = StyleSheet.create({
-    container: { paddingHorizontal: 20, gap: 12, paddingVertical: 15, flexDirection: 'row' },
+    container: { paddingHorizontal: 20, gap: 8, paddingVertical: 10, flexDirection: 'row' },
     btn: {
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 14,
         borderWidth: 1,
     },
     btnActive: {
         backgroundColor: COLORS.black,
         borderColor: COLORS.black,
-        ...SHADOW.md,
+        ...SHADOW.sm,
     },
     btnInactive: {
         backgroundColor: COLORS.white,
@@ -56,8 +56,8 @@ const styles = StyleSheet.create({
         ...SHADOW.sm,
     },
     btnText: {
-        fontSize: 14,
-        fontWeight: '800',
+        fontSize: 13,
+        fontWeight: '700',
     },
     btnTextActive: {
         color: COLORS.white,

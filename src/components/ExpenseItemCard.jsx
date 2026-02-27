@@ -1,14 +1,18 @@
 import { Alert, Animated, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useContext } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOW } from '../theme';
+import { AppContext } from '../Contex/ContextApi';
 
 const SWIPE_THRESHOLD = 80;
 
 const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
+  const { currencySymbol } = useContext(AppContext);
   const translateX = useRef(new Animated.Value(0)).current;
   const [swiped, setSwiped] = useState(false);
   const [startX, setStartX] = useState(0);
+
+  const isIncome = item.type === 'income';
 
   const handleTouchStart = (e) => {
     setStartX(e.nativeEvent.pageX);
@@ -17,7 +21,6 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
   const handleTouchMove = (e) => {
     const diff = e.nativeEvent.pageX - startX;
     if (diff < 0) {
-      // Only allow swiping left
       Animated.timing(translateX, {
         toValue: Math.max(diff, -140),
         duration: 0,
@@ -29,7 +32,6 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
   const handleTouchEnd = (e) => {
     const diff = e.nativeEvent.pageX - startX;
     if (diff < -SWIPE_THRESHOLD) {
-      // Snap to reveal buttons
       Animated.spring(translateX, {
         toValue: -140,
         useNativeDriver: true,
@@ -37,7 +39,6 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
       }).start();
       setSwiped(true);
     } else {
-      // Snap back
       Animated.spring(translateX, {
         toValue: 0,
         useNativeDriver: true,
@@ -63,18 +64,17 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
   const handleDelete = () => {
     closeSwipe();
     Alert.alert(
-      'Delete Expense',
-      'Are you sure you want to delete this expense?',
+      'Delete Item',
+      'Are you sure you want to delete this record?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => onDelete(item.id) }
+        { text: 'Delete', style: 'destructive', onPress: () => onDelete(item.id, item.type) }
       ]
     );
   };
 
   return (
     <View style={styles.wrapper}>
-      {/* Action buttons behind card */}
       <View style={styles.actions}>
         <TouchableOpacity
           onPress={handleEdit}
@@ -85,14 +85,13 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleDelete}
-          style={[styles.actionBtn, { backgroundColor: '#EF4444', borderTopRightRadius: 16, borderBottomRightRadius: 16 }]}
+          style={[styles.actionBtn, { backgroundColor: '#EF4444', borderTopRightRadius: 22, borderBottomRightRadius: 22 }]}
         >
           <Ionicons name="trash" size={20} color="white" />
           <Text style={styles.actionText}>Delete</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Swipeable card */}
       <Animated.View
         style={[styles.cardContainer, { transform: [{ translateX }] }]}
         onTouchStart={handleTouchStart}
@@ -106,20 +105,37 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
         >
           <View style={styles.cardContent}>
             <View style={styles.leftSection}>
-              <View style={styles.iconBox}>
-                <Text style={styles.emoji}>{item.icon || item.category?.icon}</Text>
+              <View style={[styles.iconBox, { backgroundColor: isIncome ? '#ECFDF5' : '#F9FAFB' }]}>
+                <Text style={styles.emoji}>{item.icon || (isIncome ? '💰' : '📦')}</Text>
               </View>
               <View style={styles.info}>
                 <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-                <View style={[styles.catBadge, { backgroundColor: item.category?.color || COLORS.gray200 }]}>
-                  <Text style={styles.catText}>{item.category?.name || 'Uncategorized'}</Text>
+                <View style={[styles.catBadge, { backgroundColor: isIncome ? '#D1FAE5' : (item.category?.color || COLORS.gray200) }]}>
+                  <Text style={[styles.catText, { color: isIncome ? '#065F46' : 'rgba(0,0,0,0.6)' }]}>
+                    {isIncome ? 'Income' : (item.category?.name || 'Uncategorized')}
+                  </Text>
                 </View>
               </View>
             </View>
 
             <View style={styles.rightSection}>
-              <Text style={styles.amount}>-${item.amount}</Text>
-              <Text style={styles.date}>{item.date}</Text>
+              <Text style={[styles.amount, { color: isIncome ? '#059669' : '#DC2626' }]}>
+                {isIncome ? '+' : '-'}{currencySymbol}{item.amount}
+              </Text>
+              <Text style={styles.date}>
+                {(() => {
+                  try {
+                    const d = new Date(item.date);
+                    if (isNaN(d.getTime())) return item.date;
+                    const day = d.getDate().toString().padStart(2, '0');
+                    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+                    const year = d.getFullYear();
+                    return `${day}/${month}/${year}`;
+                  } catch (e) {
+                    return item.date;
+                  }
+                })()}
+              </Text>
             </View>
           </View>
         </TouchableOpacity>
