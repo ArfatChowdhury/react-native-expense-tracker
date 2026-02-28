@@ -3,6 +3,8 @@ import { Alert } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { categories } from "../Data/categoriesData";
 import { registerForPushNotificationsAsync, sendBudgetWarning, scheduleMonthlySummaryAlert } from "../services/NotificationService";
+import { db, auth } from "../services/firebase";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 
 export const AppContext = createContext()
 
@@ -25,6 +27,8 @@ export const AppContextProvider = ({ children }) => {
     const [recurringTransactions, setRecurringTransactions] = useState([]);
     const [appNotifications, setAppNotifications] = useState([]);
     const [prevMonthSummary, setPrevMonthSummary] = useState(null);
+    const [hasFetchedFromCloud, setHasFetchedFromCloud] = useState(false);
+    const [isSetupComplete, setIsSetupComplete] = useState(false);
 
     const logAppNotification = (title, body, type = 'info') => {
         setAppNotifications(prev => {
@@ -108,9 +112,95 @@ export const AppContextProvider = ({ children }) => {
         }
     }, [categoriesList]);
 
+    // ── Firestore Sync ─────────────────────────────────────────
+    const syncToFirestore = async (uid, data) => {
+        if (!uid) return;
+        try {
+            await setDoc(doc(db, "users", uid), {
+                ...data,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+        } catch (e) {
+            console.error("Firestore Sync Error:", e);
+        }
+    };
+
+    const fetchFromFirestore = async (uid) => {
+        if (!uid) return;
+        try {
+            const docRef = doc(db, "users", uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.expenses) setExpenses(data.expenses);
+                if (data.incomes) setIncomes(data.incomes);
+                if (data.budgets) setBudgets(data.budgets);
+                if (data.userName) setUserNameState(data.userName);
+                if (data.currency) setCurrencyState(data.currency);
+                if (data.customCategories) setCategoriesList(data.customCategories);
+                if (data.recurringTransactions) setRecurringTransactions(data.recurringTransactions);
+                if (data.prevMonthSummary) setPrevMonthSummary(data.prevMonthSummary);
+                if (typeof data.isSetupComplete === 'boolean') setIsSetupComplete(data.isSetupComplete);
+
+                // If data has recurring items or expenses, assume setup is complete even if flag is missing
+                if (data.expenses?.length > 0 || data.recurringTransactions?.length > 0) {
+                    setIsSetupComplete(true);
+                }
+
+                // Also update local storage to stay in sync
+                await AsyncStorage.multiSet([
+                    ['expenses', JSON.stringify(data.expenses || [])],
+                    ['incomes', JSON.stringify(data.incomes || [])],
+                    ['budgets', JSON.stringify(data.budgets || {})],
+                    ['userName', data.userName || ''],
+                    ['currency', data.currency || 'USD'],
+                    ['customCategories', JSON.stringify(data.customCategories || categories)],
+                    ['recurringTransactions', JSON.stringify(data.recurringTransactions || [])],
+                    ['prevMonthSummary', JSON.stringify(data.prevMonthSummary || null)],
+                    ['isSetupComplete', JSON.stringify(data.isSetupComplete || false)]
+                ]);
+            }
+            setHasFetchedFromCloud(true);
+        } catch (e) {
+            console.error("Firestore Fetch Error:", e);
+            setHasFetchedFromCloud(true); // allow syncing after failed fetch attempt to avoid blocking user
+        }
+    };
+
+    // Auto-sync whenever critical state changes if user is logged in
+    useEffect(() => {
+        const uid = auth.currentUser?.uid;
+        if (uid && !isLoading && hasFetchedFromCloud) {
+            const timer = setTimeout(() => {
+                syncToFirestore(uid, {
+                    expenses,
+                    incomes,
+                    budgets,
+                    userName,
+                    currency,
+                    customCategories: categoriesList,
+                    recurringTransactions,
+                    prevMonthSummary,
+                    isSetupComplete
+                });
+            }, 1500); // 1.5s debounce for heavier sync
+            return () => clearTimeout(timer);
+        }
+    }, [expenses, incomes, budgets, userName, currency, categoriesList, recurringTransactions, prevMonthSummary, isSetupComplete, isLoading, hasFetchedFromCloud]);
+
+    // Listen for Auth changes to fetch data
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged(user => {
+            if (user) {
+                fetchFromFirestore(user.uid);
+            }
+        });
+        return unsubscribe;
+    }, []);
+
     const loadData = async () => {
         try {
-            const [storedExpenses, storedIncomes, storedBudgets, storedCurrency, storedDarkMode, storedCategories, storedFirstLaunch, storedUserName, storedRecurring, storedLastProcessed, storedNotifs] = await Promise.all([
+            const [storedExpenses, storedIncomes, storedBudgets, storedCurrency, storedDarkMode, storedCategories, storedFirstLaunch, storedUserName, storedRecurring, storedLastProcessed, storedNotifs, storedIsSetupComplete] = await Promise.all([
                 AsyncStorage.getItem('expenses'),
                 AsyncStorage.getItem('incomes'),
                 AsyncStorage.getItem('budgets'),
@@ -122,6 +212,7 @@ export const AppContextProvider = ({ children }) => {
                 AsyncStorage.getItem('recurringTransactions'),
                 AsyncStorage.getItem('lastProcessedMonth'),
                 AsyncStorage.getItem('appNotifications'),
+                AsyncStorage.getItem('isSetupComplete'),
             ]);
             if (storedExpenses) setExpenses(JSON.parse(storedExpenses));
             if (storedIncomes) setIncomes(JSON.parse(storedIncomes));
@@ -136,6 +227,7 @@ export const AppContextProvider = ({ children }) => {
                 AsyncStorage.getItem('prevMonthSummary')
             ]);
             if (storedPrevSummary) setPrevMonthSummary(JSON.parse(storedPrevSummary));
+            if (storedIsSetupComplete) setIsSetupComplete(JSON.parse(storedIsSetupComplete));
 
             // Recurring logic
             const recurring = storedRecurring ? JSON.parse(storedRecurring) : [];
@@ -269,9 +361,11 @@ export const AppContextProvider = ({ children }) => {
             // 2. Persist onboarding status
             await AsyncStorage.multiSet([
                 ['isFirstLaunch', JSON.stringify(false)],
+                ['isSetupComplete', JSON.stringify(true)],
                 ['lastProcessedMonth', currentMonth]
             ]);
 
+            setIsSetupComplete(true);
             setIsFirstLaunch(false);
         } catch (e) {
             console.error('Error completing onboarding', e);
@@ -441,16 +535,63 @@ export const AppContextProvider = ({ children }) => {
 
     const handleLogout = async () => {
         try {
+            // Unsubscribe from any listeners if needed
             await auth.signOut();
-            // Local state reset if needed (most is fetched on login anyway)
+
+            // Clear Local Local State
             setExpenses([]);
             setIncomes([]);
             setBudgets({});
             setAppNotifications([]);
-            await AsyncStorage.multiRemove(['expenses', 'incomes', 'budgets', 'appNotifications']);
+            setUserNameState('');
+            setHasFetchedFromCloud(false); // Reset cloud fetch state on logout
+
+            // Clear Local Storage
+            await AsyncStorage.multiRemove([
+                'expenses', 'incomes', 'budgets', 'appNotifications', 'userName',
+                'lastProcessedMonth', 'prevMonthSummary', 'recurringTransactions',
+                'isSetupComplete'
+            ]);
+
+            setIsSetupComplete(false);
+
+            // Reset categories to default if user had custom ones
+            setCategoriesList(categories);
+
+            return true;
         } catch (error) {
             console.error("Logout Error:", error);
-            Alert.alert("Error", "Failed to log out properly.");
+            Alert.alert("Error", "Failed to log out. Please try again.");
+            return false;
+        }
+    };
+
+    const handleWipeData = async () => {
+        const user = auth.currentUser;
+        if (!user) {
+            await handleLogout();
+            return true;
+        }
+
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            await setDoc(userRef, {
+                expenses: [],
+                incomes: [],
+                budgets: {},
+                recurringTransactions: [],
+                isSetupComplete: false,
+                userName: user.displayName || '',
+                currency: currency || 'USD',
+                customCategories: categories,
+                prevMonthSummary: null
+            });
+
+            await handleLogout();
+            return true;
+        } catch (error) {
+            console.error('Error wiping data:', error);
+            return false;
         }
     };
 
@@ -600,6 +741,9 @@ export const AppContextProvider = ({ children }) => {
         handleAddTransaction, handleUpdateTransaction,
         appNotifications, logAppNotification,
         prevMonthSummary, getCategorySuggestion,
+        hasFetchedFromCloud, setHasFetchedFromCloud,
+        isSetupComplete, setIsSetupComplete,
+        handleWipeData
     };
 
     return (

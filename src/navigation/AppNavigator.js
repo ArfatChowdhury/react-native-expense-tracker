@@ -257,29 +257,41 @@ import { AppContext } from "../Contex/ContextApi"
 import { useContext } from "react"
 
 const AppNavigator = () => {
-  const { isFirstLaunch } = useContext(AppContext)
+  const { isFirstLaunch, hasFetchedFromCloud, isSetupComplete } = useContext(AppContext)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged((user) => {
-      if (user) setIsAuthenticated(true)
+      setIsAuthenticated(!!user)
       setIsInitializing(false)
     })
     return unsubscribe
   }, [])
 
-  if (isInitializing || isFirstLaunch === null) {
+  if (isInitializing || isFirstLaunch === null || (isAuthenticated && !hasFetchedFromCloud)) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: '#F8F9FA' }}>
         <ActivityIndicator size="large" color="#000" />
+        {isAuthenticated && !hasFetchedFromCloud && (
+          <Text style={{ marginTop: 15, fontWeight: '700', color: '#6B7280' }}>Restoring your data...</Text>
+        )}
       </View>
     )
   }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {isFirstLaunch ? (
+      {!isAuthenticated ? (
+        <Stack.Screen name="Login">
+          {(props) => (
+            <LoginScreen {...props} onSkip={() => {
+              setHasFetchedFromCloud(true);
+              setIsAuthenticated(true);
+            }} />
+          )}
+        </Stack.Screen>
+      ) : !isSetupComplete ? (
         <>
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="CurrencySetup" component={CurrencySetup} />
@@ -287,12 +299,6 @@ const AppNavigator = () => {
           <Stack.Screen name="FixedExpensesSetup" component={FixedExpensesSetup} />
           <Stack.Screen name="InitialBudgetSetup" component={InitialBudgetSetup} />
         </>
-      ) : !isAuthenticated ? (
-        <Stack.Screen name="Login">
-          {(props) => (
-            <LoginScreen {...props} onSkip={() => setIsAuthenticated(true)} />
-          )}
-        </Stack.Screen>
       ) : (
         <>
           <Stack.Screen name="BottomTabs" component={MyTabs} />
@@ -301,6 +307,8 @@ const AppNavigator = () => {
           <Stack.Screen name="RecurringManager" component={RecurringManager} />
         </>
       )}
+      {/* Shared Screens */}
+      <Stack.Screen name="SettingsCurrency" component={CurrencySetup} />
     </Stack.Navigator>
   )
 }

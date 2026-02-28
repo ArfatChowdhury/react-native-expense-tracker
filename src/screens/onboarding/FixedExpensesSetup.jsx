@@ -14,6 +14,10 @@ const FixedExpensesSetup = ({ navigation }) => {
     const [debt, setDebt] = useState('');
     const [debtMonths, setDebtMonths] = useState('');
 
+    const skipSetup = () => {
+        navigation.navigate('InitialBudgetSetup');
+    };
+
     const handleNext = () => {
         if (insurance) {
             addRecurringTransaction({
@@ -50,17 +54,22 @@ const FixedExpensesSetup = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.root}>
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
             >
                 <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
                     <View style={tailwind`px-6 pt-10 flex-1`}>
-                        <View>
-                            <Text style={tailwind`text-sm font-bold text-primary uppercase tracking-widest`}>Step 4 of 5</Text>
-                            <Text style={tailwind`text-3xl font-extrabold text-gray-900 mt-2`}>Fixed Expenses</Text>
-                            <Text style={tailwind`text-base text-gray-500 mt-2`}>
-                                Enter your monthly recurring costs for an accurate dashboard.
-                            </Text>
+                        <View style={tailwind`flex-row justify-between items-start`}>
+                            <View>
+                                <Text style={tailwind`text-sm font-bold text-primary uppercase tracking-widest`}>Step 4 of 5</Text>
+                                <Text style={tailwind`text-3xl font-extrabold text-gray-900 mt-2`}>Fixed Expenses</Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={skipSetup}
+                                style={styles.skipHeaderBtn}
+                            >
+                                <Text style={styles.skipHeaderText}>Skip</Text>
+                            </TouchableOpacity>
                         </View>
 
                         {/* Smart Info Banner */}
@@ -138,16 +147,15 @@ const FixedExpensesSetup = ({ navigation }) => {
 
                         <View style={tailwind`mt-auto pb-10 pt-6`}>
                             <TouchableOpacity
-                                style={[styles.btn, (!insurance && !rent && !debt) && styles.skipBtn]}
+                                style={[styles.btn, (!insurance && !rent && !debt) && styles.disabledBtn]}
                                 onPress={handleNext}
+                                disabled={!insurance && !rent && !debt}
                             >
-                                <Text style={[styles.btnText, (!insurance && !rent && !debt) && styles.skipBtnText]}>
-                                    {(!insurance && !rent && !debt) ? 'Skip for now' : 'Continue'}
-                                </Text>
+                                <Text style={styles.btnText}>Continue</Text>
                                 <Ionicons
                                     name="arrow-forward"
                                     size={24}
-                                    color={(!insurance && !rent && !debt) ? '#6B7280' : COLORS.white}
+                                    color={COLORS.white}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -233,12 +241,22 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '800',
     },
-    skipBtn: {
-        backgroundColor: COLORS.gray100,
+    disabledBtn: {
+        backgroundColor: COLORS.gray400,
+        opacity: 0.6,
         ...SHADOW.none,
     },
-    skipBtnText: {
-        color: '#6B7280',
+    skipHeaderBtn: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        backgroundColor: COLORS.gray100,
+        borderRadius: 12,
+        marginTop: 4,
+    },
+    skipHeaderText: {
+        color: COLORS.gray700,
+        fontSize: 14,
+        fontWeight: '700',
     }
 })
 

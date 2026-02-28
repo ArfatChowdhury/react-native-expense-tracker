@@ -9,12 +9,13 @@ import { auth } from '../services/firebase'
 import { updateProfile } from 'firebase/auth'
 import tailwind from 'twrnc'
 import { exportTransactionsToPDF } from '../services/ExportService'
+import { currencies } from '../constants/currencies'
 
 const Settings = ({ navigation }) => {
     const {
         expenses, incomes, currency, currencySymbol, setExpenses, setIncomes,
         isDarkMode, toggleDarkMode, recurringTransactions, setRecurringTransactions,
-        handleLogout, userName, setUserName, allTransactions
+        handleLogout, userName, setUserName, allTransactions, handleWipeData
     } = useContext(AppContext)
 
     const [isEditModalVisible, setEditModalVisible] = React.useState(false)
@@ -30,7 +31,12 @@ const Settings = ({ navigation }) => {
                 {
                     text: "Logout",
                     style: "destructive",
-                    onPress: handleLogout
+                    onPress: async () => {
+                        const success = await handleLogout();
+                        if (!success) {
+                            Alert.alert("Error", "Could not sign out. Please check your connection.");
+                        }
+                    }
                 }
             ]
         )
@@ -52,19 +58,20 @@ const Settings = ({ navigation }) => {
 
     const handleClearAll = () => {
         Alert.alert(
-            'Clear All Data',
-            'This will permanently delete all your expenses and income. Are you sure?',
+            'Clear Everything',
+            'This will permanently delete ALL data from your device AND the cloud (Firestore). Your account will be reset to a fresh state. Are you sure?',
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                    text: 'Delete All',
+                    text: 'Delete Everything',
                     style: 'destructive',
-                    onPress: () => {
-                        setExpenses([])
-                        setIncomes([])
-                        setRecurringTransactions([])
-                        AsyncStorage.removeItem('recurringTransactions')
-                        AsyncStorage.removeItem('lastProcessedMonth')
+                    onPress: async () => {
+                        setIsUpdating(true); // Using isUpdating as a generic loading state
+                        const success = await handleWipeData();
+                        setIsUpdating(false);
+                        if (!success) {
+                            Alert.alert('Error', 'Failed to wipe cloud data. Please check your connection.');
+                        }
                     }
                 }
             ]
@@ -95,7 +102,7 @@ const Settings = ({ navigation }) => {
         }
     }
 
-    const MenuItem = ({ icon, label, subtitle, onPress, danger, isSwitch }) => (
+    const MenuItem = ({ icon, label, subtitle, onPress, danger, isSwitch, customIcon }) => (
         <TouchableOpacity
             onPress={onPress}
             disabled={!onPress && !isSwitch}
@@ -103,7 +110,11 @@ const Settings = ({ navigation }) => {
             activeOpacity={0.7}
         >
             <View style={[styles.iconBox, danger ? styles.dangerIcon : styles.neutralIcon]}>
-                <Ionicons name={icon} size={20} color={danger ? COLORS.expense : COLORS.textMain} />
+                {customIcon ? (
+                    <Text style={[tailwind`text-lg font-bold`, { color: danger ? COLORS.expense : COLORS.textMain }]}>{customIcon}</Text>
+                ) : (
+                    <Ionicons name={icon} size={20} color={danger ? COLORS.expense : COLORS.textMain} />
+                )}
             </View>
             <View style={styles.menuContent}>
                 <Text style={[styles.menuLabel, danger && styles.dangerLabel]}>{label}</Text>
@@ -128,7 +139,7 @@ const Settings = ({ navigation }) => {
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Account</Text>
-                    <Text style={styles.subtitle}>Preferances and settings</Text>
+                    <Text style={styles.subtitle}>Preferences and settings</Text>
                 </View>
 
                 {/* Profile Card */}
@@ -172,7 +183,8 @@ const Settings = ({ navigation }) => {
                         icon="cash-outline"
                         label="Currency"
                         subtitle={`Currently using ${currency} (${currencySymbol})`}
-                        onPress={() => navigation.navigate('CurrencySetup', { isSettings: true })}
+                        onPress={() => navigation.navigate('SettingsCurrency', { isSettings: true })}
+                        customIcon={currencySymbol}
                     />
                     {/* <MenuItem
                         icon="moon-outline"

@@ -21,7 +21,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#16a34a"
+        "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "permissions": []
@@ -30,10 +30,14 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "privacyPolicyUrl": "https://your-privacy-policy-url.com"
+      "privacyPolicyUrl": "https://your-privacy-policy-url.com",
+      "eas": {
+        "projectId": "73029201-4843-408f-9f12-24b9403b086a"
+      }
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ]
   }
 }

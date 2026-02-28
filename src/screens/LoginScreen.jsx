@@ -96,108 +96,130 @@ const LoginScreen = ({ onSkip }) => {
             <ScrollView contentContainerStyle={tailwind`flex-grow justify-center px-8 py-10`} showsVerticalScrollIndicator={false}>
 
                 {/* Logo & Branding */}
-                <View style={tailwind`items-center mt-10 mb-8`}>
-                    <View style={[tailwind`w-20 h-20 rounded-3xl justify-center items-center mb-4 p-2 bg-white`, { ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5 }, android: { elevation: 8 } }) }]}>
-                        <Image source={require('../../assets/icon.png')} style={tailwind`w-full h-full rounded-2xl`} resizeMode="contain" />
+                <View style={tailwind`items-center mt-10 mb-10`}>
+                    <View style={[tailwind`w-20 h-20 rounded-[28px] justify-center items-center mb-4 p-1 bg-white`, { ...SHADOW.lg }]}>
+                        <View style={tailwind`w-full h-full rounded-[24px] overflow-hidden bg-gray-50`}>
+                            <Image source={require('../../assets/icon.png')} style={tailwind`w-full h-full`} resizeMode="contain" />
+                        </View>
                     </View>
-                    <Text style={[tailwind`text-4xl font-extrabold`, { color: COLORS.textMain }]}>Wallety</Text>
-                    <Text style={[tailwind`text-sm mt-2 text-center font-semibold`, { color: COLORS.textSub }]}>
-                        Track your money. Build your future.
+                    <Text style={[tailwind`text-4xl font-[900] tracking-tighter`, { color: COLORS.textMain }]}>Wallety</Text>
+                    <View style={[tailwind`h-1 w-12 rounded-full mt-2`, { backgroundColor: COLORS.primary }]} />
+                    <Text style={[tailwind`text-sm mt-3 text-center font-bold px-4 tracking-tight`, { color: COLORS.textSub }]}>
+                        Your personal financial companion.{"\n"}Secure, smart, and simple.
                     </Text>
                 </View>
 
-                {/* Auth Form */}
-                <View style={[tailwind`p-6 rounded-3xl mb-8`, { backgroundColor: COLORS.gray100 }]}>
-                    <Text style={[tailwind`text-2xl font-bold mb-6`, { color: COLORS.textMain }]}>
-                        {isLogin ? 'Welcome Back 👋' : 'Create Account ✨'}
-                    </Text>
+                {/* Auth Form Card */}
+                <View style={[tailwind`p-1 rounded-[40px] mb-8`, { backgroundColor: COLORS.gray100, ...SHADOW.md }]}>
+                    <View style={[tailwind`p-7 rounded-[38px] bg-white`, { borderWidth: 1, borderColor: 'rgba(0,0,0,0.03)' }]}>
+                        <Text style={[tailwind`text-2xl font-black mb-6`, { color: COLORS.textMain }]}>
+                            {isLogin ? 'Welcome Back' : 'Join Wallety'}
+                        </Text>
 
-                    {/* Premium Segmented Toggle */}
-                    <View style={[tailwind`flex-row p-1 rounded-2xl mb-6`, { backgroundColor: COLORS.background }]}>
-                        <TouchableOpacity
-                            onPress={() => setIsLogin(true)}
-                            style={[tailwind`flex-1 py-3 rounded-xl items-center`, isLogin ? { backgroundColor: COLORS.primary, ...SHADOW.sm } : {}]}
-                        >
-                            <Text style={[tailwind`font-bold`, { color: isLogin ? COLORS.black : COLORS.textSub }]}>Log In</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => setIsLogin(false)}
-                            style={[tailwind`flex-1 py-3 rounded-xl items-center`, !isLogin ? { backgroundColor: COLORS.primary, ...SHADOW.sm } : {}]}
-                        >
-                            <Text style={[tailwind`font-bold`, { color: !isLogin ? COLORS.black : COLORS.textSub }]}>Sign Up</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {!isLogin && (
-                        <View style={tailwind`mb-4`}>
-                            <Text style={[tailwind`text-xs font-bold ml-1 mb-2 uppercase`, { color: COLORS.textSub }]}>Full Name</Text>
-                            <TextInput
-                                style={[tailwind`px-4 py-4 rounded-2xl font-semibold`, { backgroundColor: COLORS.background, color: COLORS.textMain }]}
-                                placeholder="John Doe"
-                                placeholderTextColor={COLORS.gray400}
-                                value={name}
-                                onChangeText={setName}
-                            />
+                        {/* Premium Segmented Toggle */}
+                        <View style={[tailwind`flex-row p-1 rounded-xl mb-6`, { backgroundColor: COLORS.gray100 }]}>
+                            <TouchableOpacity
+                                onPress={() => setIsLogin(true)}
+                                activeOpacity={0.8}
+                                style={[tailwind`flex-1 py-2.5 rounded-lg items-center flex-row justify-center gap-2`, isLogin ? { backgroundColor: COLORS.white, ...SHADOW.sm } : {}]}
+                            >
+                                <Ionicons name="log-in" size={16} color={isLogin ? COLORS.black : COLORS.gray400} />
+                                <Text style={[tailwind`font-extrabold text-xs tracking-tight`, { color: isLogin ? COLORS.black : COLORS.gray400 }]}>LOGIN</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => setIsLogin(false)}
+                                activeOpacity={0.8}
+                                style={[tailwind`flex-1 py-2.5 rounded-lg items-center flex-row justify-center gap-2`, !isLogin ? { backgroundColor: COLORS.white, ...SHADOW.sm } : {}]}
+                            >
+                                <Ionicons name="person-add" size={16} color={!isLogin ? COLORS.black : COLORS.gray400} />
+                                <Text style={[tailwind`font-extrabold text-xs tracking-tight`, { color: !isLogin ? COLORS.black : COLORS.gray400 }]}>SIGN UP</Text>
+                            </TouchableOpacity>
                         </View>
-                    )}
 
-                    <View style={tailwind`mb-4`}>
-                        <Text style={[tailwind`text-xs font-bold ml-1 mb-2 uppercase`, { color: COLORS.textSub }]}>Email Address</Text>
-                        <TextInput
-                            style={[tailwind`px-4 py-4 rounded-2xl font-semibold`, { backgroundColor: COLORS.background, color: COLORS.textMain }]}
-                            placeholder="you@example.com"
-                            placeholderTextColor={COLORS.gray400}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            value={email}
-                            onChangeText={setEmail}
-                        />
+                        <View style={tailwind`gap-5`}>
+                            {!isLogin && (
+                                <View>
+                                    <Text style={[tailwind`text-[10px] font-black ml-2 mb-2 tracking-widest uppercase opacity-40`, { color: COLORS.textMain }]}>Full Name</Text>
+                                    <TextInput
+                                        style={[tailwind`px-5 py-4.5 rounded-2xl font-bold border-2`, { backgroundColor: COLORS.gray50, color: COLORS.textMain, borderColor: 'transparent' }]}
+                                        placeholder="John Doe"
+                                        placeholderTextColor={COLORS.gray400}
+                                        value={name}
+                                        onChangeText={setName}
+                                    />
+                                </View>
+                            )}
+
+                            <View>
+                                <Text style={[tailwind`text-[10px] font-black ml-2 mb-2 tracking-widest uppercase opacity-40`, { color: COLORS.textMain }]}>Email Address</Text>
+                                <TextInput
+                                    style={[tailwind`px-5 py-4.5 rounded-2xl font-bold border-2`, { backgroundColor: COLORS.gray50, color: COLORS.textMain, borderColor: 'transparent' }]}
+                                    placeholder="name@email.com"
+                                    placeholderTextColor={COLORS.gray400}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    value={email}
+                                    onChangeText={setEmail}
+                                />
+                            </View>
+
+                            <View>
+                                <Text style={[tailwind`text-[10px] font-black ml-2 mb-2 tracking-widest uppercase opacity-40`, { color: COLORS.textMain }]}>Password</Text>
+                                <TextInput
+                                    style={[tailwind`px-5 py-4.5 rounded-2xl font-bold border-2`, { backgroundColor: COLORS.gray50, color: COLORS.textMain, borderColor: 'transparent' }]}
+                                    placeholder="••••••••"
+                                    placeholderTextColor={COLORS.gray400}
+                                    secureTextEntry
+                                    value={password}
+                                    onChangeText={setPassword}
+                                />
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={handleEmailAuth}
+                                disabled={loading}
+                                activeOpacity={0.9}
+                                style={[tailwind`rounded-2xl py-4 items-center mt-2`, { backgroundColor: COLORS.black, ...SHADOW.md }]}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color={COLORS.white} />
+                                ) : (
+                                    <Text style={[tailwind`font-black text-sm tracking-widest`, { color: COLORS.white }]}>
+                                        {isLogin ? 'CONTINUE' : 'CREATE ACCOUNT'}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     </View>
-
-                    <View style={tailwind`mb-6`}>
-                        <Text style={[tailwind`text-xs font-bold ml-1 mb-2 uppercase`, { color: COLORS.textSub }]}>Password</Text>
-                        <TextInput
-                            style={[tailwind`px-4 py-4 rounded-2xl font-semibold`, { backgroundColor: COLORS.background, color: COLORS.textMain }]}
-                            placeholder="••••••••"
-                            placeholderTextColor={COLORS.gray400}
-                            secureTextEntry
-                            value={password}
-                            onChangeText={setPassword}
-                        />
-                    </View>
-
-                    <TouchableOpacity
-                        onPress={handleEmailAuth}
-                        disabled={loading}
-                        style={[tailwind`rounded-2xl py-4 items-center`, { backgroundColor: COLORS.primary }]}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color={COLORS.black} />
-                        ) : (
-                            <Text style={[tailwind`font-bold text-lg`, { color: COLORS.black }]}>
-                                {isLogin ? 'Log In' : 'Sign Up'}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
                 </View>
 
                 {/* Social Login */}
-                <View style={tailwind`items-center mb-6`}>
-                    <Text style={[tailwind`text-xs font-bold mb-4 uppercase`, { color: COLORS.gray500 }]}>Or continue with</Text>
+                <View style={tailwind`items-center mb-8 px-4`}>
+                    <View style={tailwind`flex-row items-center mb-6 opacity-30`}>
+                        <View style={[tailwind`flex-1 h-[1px]`, { backgroundColor: COLORS.textMain }]} />
+                        <Text style={[tailwind`mx-4 text-[10px] font-black tracking-widest uppercase`, { color: COLORS.textMain }]}>Or continue with</Text>
+                        <View style={[tailwind`flex-1 h-[1px]`, { backgroundColor: COLORS.textMain }]} />
+                    </View>
+
                     <TouchableOpacity
                         onPress={handleGoogleSignIn}
                         disabled={loading}
-                        style={[tailwind`flex-row items-center w-full justify-center py-4 rounded-2xl border`, { borderColor: COLORS.gray100, backgroundColor: COLORS.background }]}
+                        activeOpacity={0.8}
+                        style={[tailwind`flex-row items-center w-full justify-center py-4.5 rounded-2xl border-2`, { borderColor: COLORS.gray100, backgroundColor: COLORS.white }]}
                     >
-                        <Ionicons name="logo-google" size={20} color={COLORS.textMain} style={tailwind`mr-3`} />
-                        <Text style={[tailwind`font-bold text-base`, { color: COLORS.textMain }]}>Google</Text>
+                        <Ionicons name="logo-google" size={22} color={COLORS.textMain} style={tailwind`mr-3`} />
+                        <Text style={[tailwind`font-black text-base tracking-tight`, { color: COLORS.textMain }]}>Sign in with Google</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Offline Mode */}
-                <TouchableOpacity onPress={onSkip} style={tailwind`items-center py-4`}>
-                    <Text style={[tailwind`text-sm font-semibold underline`, { color: COLORS.gray400 }]}>
-                        Skip for now — use offline
+                <TouchableOpacity
+                    onPress={onSkip}
+                    activeOpacity={0.7}
+                    style={tailwind`items-center py-4 mb-10`}
+                >
+                    <Text style={[tailwind`text-sm font-black tracking-tight opacity-40`, { color: COLORS.textMain, textDecorationLine: 'underline' }]}>
+                        USE AS GUEST (OFFLINE) 🚶
                     </Text>
                 </TouchableOpacity>
 

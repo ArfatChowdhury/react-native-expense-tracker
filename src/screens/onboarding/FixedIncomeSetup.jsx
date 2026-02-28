@@ -13,6 +13,10 @@ const FixedIncomeSetup = ({ navigation }) => {
     const [business, setBusiness] = useState('');
     const [sideHustle, setSideHustle] = useState('');
 
+    const skipSetup = () => {
+        navigation.navigate('FixedExpensesSetup');
+    };
+
     const handleNext = () => {
         if (salary) {
             addRecurringTransaction({
@@ -48,17 +52,22 @@ const FixedIncomeSetup = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.root}>
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
             >
                 <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
                     <View style={tailwind`px-6 pt-10 flex-1`}>
-                        <View>
-                            <Text style={tailwind`text-sm font-bold text-primary uppercase tracking-widest`}>Step 3 of 5</Text>
-                            <Text style={tailwind`text-3xl font-extrabold text-gray-900 mt-2`}>Monthly Income</Text>
-                            <Text style={tailwind`text-base text-gray-500 mt-2`}>
-                                Add your regular incoming money to calculate your savings potential.
-                            </Text>
+                        <View style={tailwind`flex-row justify-between items-start`}>
+                            <View>
+                                <Text style={tailwind`text-sm font-bold text-primary uppercase tracking-widest`}>Step 3 of 5</Text>
+                                <Text style={tailwind`text-3xl font-extrabold text-gray-900 mt-2`}>Monthly Income</Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={skipSetup}
+                                style={styles.skipHeaderBtn}
+                            >
+                                <Text style={styles.skipHeaderText}>Skip</Text>
+                            </TouchableOpacity>
                         </View>
 
                         <View style={styles.infoBanner}>
@@ -123,16 +132,15 @@ const FixedIncomeSetup = ({ navigation }) => {
 
                         <View style={tailwind`mt-auto pb-10 pt-6`}>
                             <TouchableOpacity
-                                style={[styles.btn, (!salary && !business && !sideHustle) && styles.skipBtn]}
+                                style={[styles.btn, (!salary && !business && !sideHustle) && styles.disabledBtn]}
                                 onPress={handleNext}
+                                disabled={!salary && !business && !sideHustle}
                             >
-                                <Text style={[styles.btnText, (!salary && !business && !sideHustle) && styles.skipBtnText]}>
-                                    {(!salary && !business && !sideHustle) ? 'Skip for now' : 'Continue'}
-                                </Text>
+                                <Text style={styles.btnText}>Continue</Text>
                                 <Ionicons
                                     name="arrow-forward"
                                     size={24}
-                                    color={(!salary && !business && !sideHustle) ? '#6B7280' : COLORS.white}
+                                    color={COLORS.white}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -212,12 +220,22 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '800',
     },
-    skipBtn: {
-        backgroundColor: COLORS.gray100,
+    disabledBtn: {
+        backgroundColor: COLORS.gray400,
+        opacity: 0.6,
         ...SHADOW.none,
     },
-    skipBtnText: {
-        color: '#6B7280',
+    skipHeaderBtn: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        backgroundColor: COLORS.gray100,
+        borderRadius: 12,
+        marginTop: 4,
+    },
+    skipHeaderText: {
+        color: COLORS.gray700,
+        fontSize: 14,
+        fontWeight: '700',
     }
 })
 

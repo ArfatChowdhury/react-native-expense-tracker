@@ -6,28 +6,7 @@ import tailwind from 'twrnc'
 import { COLORS, SHADOW } from '../../theme'
 import { AppContext } from '../../Contex/ContextApi'
 
-const currencies = [
-    { code: 'USD', symbol: '$', name: 'US Dollar', region: 'Global' },
-    { code: 'EUR', symbol: '€', name: 'Euro', region: 'Europe' },
-    { code: 'GBP', symbol: '£', name: 'British Pound', region: 'UK' },
-    { code: 'INR', symbol: '₹', name: 'Indian Rupee', region: 'India' },
-    { code: 'JPY', symbol: '¥', name: 'Japanese Yen', region: 'Japan' },
-    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', region: 'Australia' },
-    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', region: 'Canada' },
-    { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka', region: 'Bangladesh' },
-    { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', region: 'China' },
-    { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar', region: 'Singapore' },
-    { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham', region: 'UAE' },
-    { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal', region: 'Saudi Arabia' },
-    { code: 'RUB', symbol: '₽', name: 'Russian Ruble', region: 'Russia' },
-    { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', region: 'Brazil' },
-    { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc', region: 'Switzerland' },
-    { code: 'TRY', symbol: '₺', name: 'Turkish Lira', region: 'Turkey' },
-    { code: 'KRW', symbol: '₩', name: 'South Korean Won', region: 'Korea' },
-    { code: 'ZAR', symbol: 'R', name: 'South African Rand', region: 'S. Africa' },
-    { code: 'PKR', symbol: '₨', name: 'Pakistani Rupee', region: 'Pakistan' },
-    { code: 'EGP', symbol: 'E£', name: 'Egyptian Pound', region: 'Egypt' },
-]
+import { currencies } from '../../constants/currencies'
 
 const CurrencySetup = ({ navigation, route }) => {
     const { currency, setCurrency } = useContext(AppContext);
@@ -46,6 +25,10 @@ const CurrencySetup = ({ navigation, route }) => {
         setCurrency(code);
     }
 
+    const skipSetup = () => {
+        navigation.navigate('FixedIncomeSetup');
+    };
+
     const handleNext = () => {
         if (isSettings) {
             navigation.goBack();
@@ -57,15 +40,25 @@ const CurrencySetup = ({ navigation, route }) => {
     return (
         <SafeAreaView style={styles.root}>
             <View style={tailwind`px-6 pt-10 flex-1`}>
-                <View>
-                    {!isSettings && <Text style={tailwind`text-sm font-bold text-primary uppercase tracking-widest`}>Step 2 of 5</Text>}
-                    <Text style={tailwind`text-3xl font-extrabold text-gray-900 mt-2`}>
-                        {isSettings ? 'Change Currency' : 'Choose currency'}
-                    </Text>
-                    <Text style={tailwind`text-base text-gray-500 mt-2`}>
-                        {isSettings ? 'Update your preferred currency symbol.' : 'This will be used for all your budget records.'}
-                    </Text>
+                <View style={tailwind`flex-row justify-between items-start`}>
+                    <View>
+                        {!isSettings && <Text style={tailwind`text-sm font-bold text-primary uppercase tracking-widest`}>Step 2 of 5</Text>}
+                        <Text style={tailwind`text-3xl font-extrabold text-gray-900 mt-2`}>
+                            {isSettings ? 'Change Currency' : 'Choose currency'}
+                        </Text>
+                    </View>
+                    {!isSettings && (
+                        <TouchableOpacity
+                            onPress={skipSetup}
+                            style={styles.skipHeaderBtn}
+                        >
+                            <Text style={styles.skipHeaderText}>Skip</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
+                <Text style={tailwind`text-base text-gray-500 mt-2`}>
+                    {isSettings ? 'Update your preferred currency symbol.' : 'This will be used for all your budget records.'}
+                </Text>
 
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
@@ -205,6 +198,18 @@ const styles = StyleSheet.create({
         color: COLORS.white,
         fontSize: 18,
         fontWeight: '800',
+    },
+    skipHeaderBtn: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        backgroundColor: COLORS.gray100,
+        borderRadius: 12,
+        marginTop: 4,
+    },
+    skipHeaderText: {
+        color: COLORS.gray700,
+        fontSize: 14,
+        fontWeight: '700',
     }
 })
 
