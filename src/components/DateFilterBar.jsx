@@ -1,12 +1,14 @@
-import { ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { ScrollView, Text, TouchableOpacity, StyleSheet, View } from 'react-native'
 import React from 'react'
 import { COLORS, SHADOW } from '../theme'
+import { Ionicons } from '@expo/vector-icons'
 
 const PERIODS = [
-    { label: 'Today', value: 'today' },
-    { label: 'This Week', value: 'week' },
-    { label: 'This Month', value: 'month' },
-    { label: 'All Time', value: 'all' },
+    { label: 'Today', value: 'today', icon: 'today-outline' },
+    { label: 'This Week', value: 'week', icon: 'calendar-outline' },
+    { label: 'This Month', value: 'month', icon: 'calendar-number-outline' },
+    { label: 'All Time', value: 'all', icon: 'infinite-outline' },
+    { label: 'Calendar', value: 'calendar', icon: 'trail-sign-outline' },
 ]
 
 const DateFilterBar = ({ selectedPeriod, onSelect }) => {
@@ -22,9 +24,15 @@ const DateFilterBar = ({ selectedPeriod, onSelect }) => {
                     onPress={() => onSelect(p.value)}
                     style={[
                         styles.btn,
-                        selectedPeriod === p.value ? styles.btnActive : styles.btnInactive
+                        selectedPeriod === p.value ? styles.btnActive : styles.btnInactive,
+                        { flexDirection: 'row', alignItems: 'center', gap: 6 }
                     ]}
                 >
+                    <Ionicons
+                        name={p.icon}
+                        size={16}
+                        color={selectedPeriod === p.value ? COLORS.white : COLORS.textSub}
+                    />
                     <Text style={[
                         styles.btnText,
                         selectedPeriod === p.value ? styles.btnTextActive : styles.btnTextInactive

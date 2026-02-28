@@ -20,28 +20,25 @@ const FixedExpensesSetup = ({ navigation }) => {
                 type: 'expense',
                 title: 'Insurance',
                 amount: parseFloat(insurance),
-                category: { name: 'Health', icon: '🏥' },
+                category: { name: 'Insurance', icon: '🛡️', color: '#FF8C00' },
             });
-            handleAddExpense({ title: 'Insurance', amount: insurance, category: { name: 'Health', icon: '🏥' } });
         }
         if (rent) {
             addRecurringTransaction({
                 type: 'expense',
                 title: 'Rent',
                 amount: parseFloat(rent),
-                category: { name: 'Home', icon: '🏠' },
+                category: { name: 'Rent', icon: '🏠', color: '#8A2BE2' },
             });
-            handleAddExpense({ title: 'Rent', amount: rent, category: { name: 'Home', icon: '🏠' } });
         }
         if (debt) {
             addRecurringTransaction({
                 type: 'expense',
                 title: 'Bank Debt',
                 amount: parseFloat(debt),
-                category: { name: 'Bills', icon: '💳' },
+                category: { name: 'Bills', icon: '🧾', color: '#4ECDC4' },
                 monthsRemaining: debtMonths ? parseInt(debtMonths) : null
             });
-            handleAddExpense({ title: 'Bank Debt', amount: debt, category: { name: 'Bills', icon: '💳' } });
         }
 
         navigation.navigate('InitialBudgetSetup');

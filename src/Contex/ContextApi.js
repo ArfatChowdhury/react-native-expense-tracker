@@ -2,7 +2,7 @@ import { createContext, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { categories } from "../Data/categoriesData";
-import { registerForPushNotificationsAsync, scheduleBudgetAlert } from "../services/NotificationService";
+import { registerForPushNotificationsAsync, scheduleBudgetAlert, scheduleMonthlySummaryAlert } from "../services/NotificationService";
 
 export const AppContext = createContext()
 
@@ -26,27 +26,17 @@ export const AppContextProvider = ({ children }) => {
 
     const getCurrencySymbol = (code) => {
         const symbols = {
-            'USD': '$',
-            'INR': '₹',
-            'EUR': '€',
-            'GBP': '£',
-            'JPY': '¥',
-            'BDT': '৳',
-            'AED': 'د.إ',
-            'SAR': '﷼',
-            'CAD': 'C$',
-            'AUD': 'A$',
-            'CNY': '¥',
-            'RUB': '₽',
-            'BRL': 'R$',
-            'CHF': 'Fr',
-            'TRY': '₺',
-            'KRW': '₩',
-            'ZAR': 'R',
-            'PKR': '₨',
-            'EGP': 'E£'
+            'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹', 'JPY': '¥',
+            'AUD': 'A$', 'CAD': 'C$', 'BDT': '৳', 'CNY': '¥', 'SGD': 'S$',
+            'AED': 'د.إ', 'SAR': '﷼', 'RUB': '₽', 'BRL': 'R$', 'CHF': 'Fr',
+            'TRY': '₺', 'KRW': '₩', 'ZAR': 'R', 'PKR': '₨', 'EGP': 'E£'
         };
         return symbols[code] || '$';
+    };
+
+    const getYearMonth = (date = new Date()) => {
+        const d = new Date(date);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     };
 
     const currencySymbol = getCurrencySymbol(currency);
@@ -64,6 +54,7 @@ export const AppContextProvider = ({ children }) => {
     useEffect(() => {
         loadData();
         registerForPushNotificationsAsync();
+        scheduleMonthlySummaryAlert();
     }, []);
 
     // ── Persist expenses whenever they change ─────────────────
@@ -123,8 +114,12 @@ export const AppContextProvider = ({ children }) => {
             if (storedUserName) setUserNameState(storedUserName);
 
             // Auto-log recurring items for current month if not done
-            const currentMonthYear = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+            const currentMonthYear = getYearMonth();
             if (storedLastProcessed !== currentMonthYear && recurring.length > 0) {
+                // Before processing new month, save previous month's summary for comparison
+                if (storedLastProcessed) {
+                    await cachePreviousMonthSummary(storedExpenses, storedIncomes, storedLastProcessed);
+                }
                 processRecurring(recurring, currentMonthYear);
             }
         } catch (error) {
@@ -132,6 +127,30 @@ export const AppContextProvider = ({ children }) => {
             Alert.alert('Error', 'Failed to load your data');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const cachePreviousMonthSummary = async (expensesStr, incomesStr, monthYear) => {
+        try {
+            const exps = expensesStr ? JSON.parse(expensesStr) : [];
+            const incs = incomesStr ? JSON.parse(incomesStr) : [];
+
+            const monthExps = exps.filter(e => e.date.startsWith(monthYear));
+            const monthIncs = incs.filter(i => i.date.startsWith(monthYear));
+
+            const totalE = monthExps.reduce((sum, e) => sum + Number(e.amount), 0);
+            const totalI = monthIncs.reduce((sum, i) => sum + Number(i.amount), 0);
+
+            const summary = {
+                monthYear,
+                totalSpent: totalE,
+                totalIncome: totalI,
+                savings: totalI - totalE
+            };
+
+            await AsyncStorage.setItem('prevMonthSummary', JSON.stringify(summary));
+        } catch (e) {
+            console.log('Error caching monthly summary:', e);
         }
     };
 
@@ -188,8 +207,25 @@ export const AppContextProvider = ({ children }) => {
     };
 
     const completeOnboarding = async () => {
-        setIsFirstLaunch(false);
-        await AsyncStorage.setItem('isFirstLaunch', JSON.stringify(false));
+        try {
+            const currentMonth = getYearMonth();
+
+            // 1. Process recurring items immediately so they appear on dashboard
+            // We read from the current state. They should be there since they were added in previous screens.
+            if (recurringTransactions.length > 0) {
+                processRecurring(recurringTransactions, currentMonth);
+            }
+
+            // 2. Persist onboarding status
+            await AsyncStorage.multiSet([
+                ['isFirstLaunch', JSON.stringify(false)],
+                ['lastProcessedMonth', currentMonth]
+            ]);
+
+            setIsFirstLaunch(false);
+        } catch (e) {
+            console.error('Error completing onboarding', e);
+        }
     };
 
     const setUserName = async (name) => {
@@ -322,11 +358,13 @@ export const AppContextProvider = ({ children }) => {
 
     // ── Budget actions ─────────────────────────────────────
     const setBudget = (categoryName, limit) => {
-        const newBudgets = { ...budgets, [categoryName]: limit };
-        setBudgets(newBudgets);
-        AsyncStorage.setItem('budgets', JSON.stringify(newBudgets)).catch(e =>
-            console.log('Error saving budgets:', e)
-        );
+        setBudgets(prev => {
+            const newBudgets = { ...prev, [categoryName]: limit };
+            AsyncStorage.setItem('budgets', JSON.stringify(newBudgets)).catch(e =>
+                console.log('Error saving budgets:', e)
+            );
+            return newBudgets;
+        });
     };
 
     const setCurrency = (c) => {
@@ -340,10 +378,42 @@ export const AppContextProvider = ({ children }) => {
         AsyncStorage.setItem('isDarkMode', JSON.stringify(newMode)).catch(e => console.log('Error saving dark mode:', e));
     };
 
-    // ── Derived values ────────────────────────────────────────
-    const totalSpent = expenses.reduce((sum, item) => sum + Number(item.amount), 0);
-    const totalIncome = incomes.reduce((sum, item) => sum + Number(item.amount), 0);
+    // ── Derived values (Monthly First) ────────────────────────
+    const currentMonth = getYearMonth();
+
+    const monthlyExpenses = expenses.filter(e => e.date.startsWith(currentMonth));
+    const monthlyIncomes = incomes.filter(i => i.date.startsWith(currentMonth));
+
+    const totalSpent = monthlyExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+    const totalIncome = monthlyIncomes.reduce((sum, item) => sum + Number(item.amount), 0);
     const balance = totalIncome - totalSpent;
+
+    // Smart Insights
+    const monthlySummary = useMemo(() => {
+        const topCatItem = monthlyExpenses.reduce((acc, curr) => {
+            const catName = curr.category?.name || 'Uncategorized';
+            acc[catName] = (acc[catName] || 0) + Number(curr.amount);
+            return acc;
+        }, {});
+
+        const topCategoryName = Object.keys(topCatItem).sort((a, b) => topCatItem[b] - topCatItem[a])[0] || 'None';
+
+        const now = new Date();
+        const today = now.getDate();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const isClosingTime = today >= lastDay - 2; // Last 3 days
+        const isLastDay = today === lastDay;
+        const isPreClosing = isClosingTime && !isLastDay;
+
+        return {
+            topCategory: topCategoryName,
+            isClosingTime,
+            isLastDay,
+            isPreClosing,
+            savings: balance,
+            isDebt: balance < 0
+        };
+    }, [monthlyExpenses, balance]);
 
     const filteredExpenses = (() => {
         const now = new Date();
@@ -418,6 +488,7 @@ export const AppContextProvider = ({ children }) => {
             ...incomes.map(i => ({ ...i, type: 'income', title: i.source, category: { name: 'Income', icon: '💰' } }))
         ].sort((a, b) => new Date(b.date) - new Date(a.date)),
         totalSpent, totalIncome, balance,
+        monthlySummary,
         categoriesWithBudget,
         // Expense actions
         handleAddExpense, handleEdit, handleUpdateExpense, handleDelete,

@@ -1,5 +1,6 @@
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground } from 'react-native'
-import React, { useContext } from 'react'
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground, Modal, ScrollView as RNScrollView } from 'react-native'
+import React, { useContext, useMemo } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { AppContext } from '../Contex/ContextApi'
@@ -7,11 +8,49 @@ import { COLORS, SHADOW } from '../theme'
 import ExpenseItemCard from '../components/ExpenseItemCard'
 import EmptyList from '../components/EmptyList'
 import DateFilterBar from '../components/DateFilterBar'
-
+import tailwind from 'twrnc'
 const Home = ({ navigation }) => {
-  const { totalSpent, balance, expenses, allTransactions, handleEdit, handleDelete, handleDeleteIncome, categoriesWithBudget, currencySymbol } = useContext(AppContext)
+  const {
+    totalSpent, balance, expenses, allTransactions, handleEdit, handleDelete,
+    handleDeleteIncome, categoriesWithBudget, currencySymbol, monthlySummary
+  } = useContext(AppContext)
 
-  const [selectedPeriod, setSelectedPeriod] = React.useState('all')
+  const [selectedPeriod, setSelectedPeriod] = React.useState('month')
+  const [showMonthPicker, setShowMonthPicker] = React.useState(false)
+  const [showSummaryModal, setShowSummaryModal] = React.useState(false)
+  const [selectedMonth, setSelectedMonth] = React.useState(new Date().toISOString().slice(0, 7)) // YYYY-MM
+  const [isBudgetWarningDismissed, setIsBudgetWarningDismissed] = React.useState(false)
+  const [hasDismissedSummaryBanner, setHasDismissedSummaryBanner] = React.useState(false)
+  const [hasSeenPreClosingThisMonth, setHasSeenPreClosingThisMonth] = React.useState(false)
+  const [showNotifications, setShowNotifications] = React.useState(false)
+
+  // Dummy notifications since NotificationService is system-level
+  const dummyNotifications = [
+    { id: '1', title: 'Monthly Summary Ready!', body: 'Your final results for this month are in! Tap to see.', date: 'Just now', type: 'info' },
+    { id: '2', title: '🚨 Budget Exceeded!', body: "You've used 100% of your Shopping budget!", date: '2 hours ago', type: 'warning' },
+    { id: '3', title: '💸 Expense Added', body: '✅ $45.00: Groceries', date: 'Yesterday', type: 'success' },
+  ];
+
+  // Banner & Popup seen status logic
+  React.useEffect(() => {
+    const checkSeenStatus = async () => {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const [lastDismissedBanner, lastSeenPreClosing] = await Promise.all([
+        AsyncStorage.getItem('summaryBannerDismissedMonth'),
+        AsyncStorage.getItem('preClosingSeenMonth')
+      ]);
+
+      if (lastDismissedBanner === currentMonth) setHasDismissedSummaryBanner(true);
+      if (lastSeenPreClosing === currentMonth) setHasSeenPreClosingThisMonth(true);
+    };
+    checkSeenStatus();
+  }, []);
+
+  const getNotificationIconColor = (type) => {
+    if (type === 'success') return COLORS.income;
+    if (type === 'warning') return COLORS.expense;
+    return COLORS.primary;
+  };
 
   const handleEditExpense = (item) => {
     handleEdit(item)
@@ -30,27 +69,154 @@ const Home = ({ navigation }) => {
     ])
   }
 
+  // Filter Transactions based on selectedPeriod
+  const filteredTransactions = useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    return allTransactions.filter(item => {
+      const itemDate = new Date(item.date);
+      if (selectedPeriod === 'today') return item.date === todayStr;
+      if (selectedPeriod === 'week') {
+        const weekAgo = new Date();
+        weekAgo.setDate(now.getDate() - 7);
+        return itemDate >= weekAgo;
+      }
+      if (selectedPeriod === 'month') {
+        return item.date.startsWith(now.toISOString().slice(0, 7));
+      }
+      if (selectedPeriod === 'calendar') {
+        return item.date.startsWith(selectedMonth);
+      }
+      return true; // 'all'
+    });
+  }, [allTransactions, selectedPeriod, selectedMonth]);
+
+  // Dynamic Totals based on filter
+  const displayTotals = useMemo(() => {
+    const spent = filteredTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    const income = filteredTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    return {
+      spent,
+      balance: income - spent
+    };
+  }, [filteredTransactions]);
+
+  const handlePeriodSelect = (period) => {
+    if (period === 'calendar') {
+      setShowMonthPicker(true)
+    }
+    setSelectedPeriod(period)
+  }
+
   const overBudgetCategories = categoriesWithBudget.filter(cat => cat.budgetLimit > 0 && cat.amountSpent > cat.budgetLimit)
 
   const BudgetWarningBanner = () => {
-    if (overBudgetCategories.length === 0) return null
+    if (overBudgetCategories.length === 0 || isBudgetWarningDismissed) return null
     return (
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Budget')}
-        style={styles.warningBanner}
-        activeOpacity={0.9}
-      >
-        <View style={styles.warningIconBox}>
-          <Ionicons name="warning" size={24} color="#FFF" />
+      <View style={styles.warningBanner}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Budget')}
+          style={tailwind`flex-row items-center flex-1`}
+          activeOpacity={0.9}
+        >
+          <View style={styles.warningIconBox}>
+            <Ionicons name="warning" size={24} color="#FFF" />
+          </View>
+          <View style={styles.warningTextContent}>
+            <Text style={styles.warningTitle}>Budget Alert</Text>
+            <Text style={styles.warningDesc}>
+              You have exceeded your limit in {overBudgetCategories.length} {overBudgetCategories.length === 1 ? 'category' : 'categories'}.
+            </Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setIsBudgetWarningDismissed(true)}
+          style={tailwind`p-2`}
+        >
+          <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
+      </View>
+    )
+  }
+
+  const MonthlySummaryBanner = () => {
+    if (!monthlySummary.isClosingTime) return null
+
+    // Pre-Closing Info Banner (Last 3 days but not the last day)
+    if (monthlySummary.isPreClosing) {
+      if (hasSeenPreClosingThisMonth) return null
+      return (
+        <View style={styles.preClosingBanner}>
+          <View style={styles.warningIconBox}>
+            <Ionicons name="time" size={24} color="#FFF" />
+          </View>
+          <View style={styles.warningTextContent}>
+            <Text style={styles.warningTitle}>Month Closing Soon</Text>
+            <Text style={styles.warningDesc}>
+              A new month starts soon! Recurring items will be added automatically.
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={async () => {
+              const currentMonth = new Date().toISOString().slice(0, 7);
+              await AsyncStorage.setItem('preClosingSeenMonth', currentMonth);
+              setHasSeenPreClosingThisMonth(true);
+            }}
+            style={tailwind`p-2`}
+          >
+            <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
         </View>
-        <View style={styles.warningTextContent}>
-          <Text style={styles.warningTitle}>Budget Alert</Text>
-          <Text style={styles.warningDesc}>
-            You have exceeded your limit in {overBudgetCategories.length} {overBudgetCategories.length === 1 ? 'category' : 'categories'}.
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
-      </TouchableOpacity>
+      )
+    }
+
+    // actual Closing Day Banner - ONLY SHOW ON LAST DAY
+    if (!monthlySummary.isLastDay || hasDismissedSummaryBanner) return null
+    const isSavings = monthlySummary.savings > 0;
+    const bannerStyle = isSavings ? styles.closingBannerSuccess : styles.closingBannerWarning;
+    const iconName = isSavings ? 'trophy' : 'stats-chart';
+
+    return (
+      <View style={bannerStyle}>
+        <TouchableOpacity
+          style={tailwind`flex-row items-center flex-1`}
+          activeOpacity={0.8}
+          onPress={() => setShowSummaryModal(true)}
+        >
+          <View style={styles.warningIconBox}>
+            <Ionicons name={iconName} size={24} color="#FFF" />
+          </View>
+          <View style={styles.warningTextContent}>
+            <Text style={styles.warningTitle}>
+              {isSavings ? 'Monthly Savings!' : 'Monthly Close'}
+            </Text>
+            <Text style={styles.warningDesc}>
+              {isSavings
+                ? `Great job! Click to see how much you saved.`
+                : `Monthly summary is ready. You've spent slightly more.`}
+            </Text>
+            <Text style={styles.insightText}>
+              Click to see your full summary
+            </Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={async () => {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            await AsyncStorage.setItem('summaryBannerDismissedMonth', currentMonth);
+            setHasDismissedSummaryBanner(true);
+          }}
+          style={tailwind`p-2`}
+        >
+          <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
+      </View>
     )
   }
 
@@ -63,7 +229,7 @@ const Home = ({ navigation }) => {
           <Text style={styles.subGreeting}>Start tracking your expenses</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.iconBtn}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setShowNotifications(true)}>
             <Ionicons name="notifications-outline" size={22} color={COLORS.textMain} />
             <View style={styles.dot} />
           </TouchableOpacity>
@@ -77,13 +243,15 @@ const Home = ({ navigation }) => {
         imageStyle={{ borderRadius: 32 }}
       >
         <View style={styles.cardOverlay} />
-        <Text style={styles.balanceLabel}>Spent so far</Text>
-        <Text style={styles.balanceAmount}>{currencySymbol}{Number(totalSpent).toFixed(2)}</Text>
+        <Text style={styles.balanceLabel}>
+          {selectedPeriod === 'all' ? 'Spent so far' : `${selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} Spending`}
+        </Text>
+        <Text style={styles.balanceAmount}>{currencySymbol}{Number(displayTotals.spent).toFixed(2)}</Text>
 
         <View style={styles.balanceFooter}>
           <View style={styles.footerItem}>
-            <Text style={styles.footerLabel}>Remaining Balance</Text>
-            <Text style={styles.footerValue}>{currencySymbol}{Number(balance).toFixed(2)}</Text>
+            <Text style={styles.footerLabel}>Filtered Balance</Text>
+            <Text style={styles.footerValue}>{currencySymbol}{Number(displayTotals.balance).toFixed(2)}</Text>
           </View>
         </View>
       </ImageBackground>
@@ -91,10 +259,25 @@ const Home = ({ navigation }) => {
       {/* Budget Warning Banner */}
       <BudgetWarningBanner />
 
+      {/* Monthly Closing Summary */}
+      <MonthlySummaryBanner />
+
       <DateFilterBar
         selectedPeriod={selectedPeriod}
-        onSelect={setSelectedPeriod}
+        onSelect={handlePeriodSelect}
       />
+
+      {selectedPeriod === 'calendar' && (
+        <View style={styles.calendarFilterInfo}>
+          <Ionicons name="calendar" size={16} color={COLORS.textSub} />
+          <Text style={styles.calendarFilterText}>
+            Showing: {new Date(selectedMonth + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}
+          </Text>
+          <TouchableOpacity onPress={() => setShowMonthPicker(true)}>
+            <Text style={styles.changeMonthBtn}>Change</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <Text style={styles.sectionTitle}>Recent Transactions</Text>
     </View>
@@ -104,7 +287,7 @@ const Home = ({ navigation }) => {
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="dark-content" />
       <FlatList
-        data={allTransactions}
+        data={filteredTransactions}
         keyExtractor={item => item.id}
         ListHeaderComponent={<ListHeader />}
         renderItem={({ item }) => (
@@ -118,6 +301,138 @@ const Home = ({ navigation }) => {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Month Selector Modal */}
+      <Modal
+        visible={showMonthPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMonthPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowMonthPicker(false)}
+        >
+          <View style={styles.monthPickerContainer}>
+            <Text style={styles.monthPickerTitle}>Select Month</Text>
+            <RNScrollView style={styles.monthList}>
+              {Array.from({ length: 12 }).map((_, i) => {
+                const d = new Date();
+                d.setMonth(d.getMonth() - i);
+                const val = d.toISOString().slice(0, 7);
+                const label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+                return (
+                  <TouchableOpacity
+                    key={val}
+                    onPress={() => {
+                      setSelectedMonth(val);
+                      setShowMonthPicker(false);
+                    }}
+                    style={[
+                      styles.monthItem,
+                      selectedMonth === val && styles.monthItemActive
+                    ]}
+                  >
+                    <Text style={[
+                      styles.monthItemText,
+                      selectedMonth === val && styles.monthItemTextActive
+                    ]}>
+                      {label}
+                    </Text>
+                    {selectedMonth === val && <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </RNScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Summary Tips Modal */}
+      <Modal
+        visible={showSummaryModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowSummaryModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.summaryModalContainer}>
+            <View style={[styles.summaryIconBox, { backgroundColor: monthlySummary.isDebt ? '#FEF3C7' : '#D1FAE5' }]}>
+              <Ionicons
+                name={monthlySummary.isDebt ? 'alert-circle' : 'sparkles'}
+                size={40}
+                color={monthlySummary.isDebt ? '#D97706' : '#059669'}
+              />
+            </View>
+
+            <Text style={styles.summaryTitle}>
+              {monthlySummary.isDebt ? 'Month Insights' : 'Amazing Progress!'}
+            </Text>
+
+            <Text style={styles.summaryAmount}>
+              {currencySymbol}{Math.abs(monthlySummary.savings).toFixed(2)}
+            </Text>
+            <Text style={styles.summarySub}>
+              {monthlySummary.isDebt ? 'over your budget this month' : 'saved in your pocket!'}
+            </Text>
+
+            <View style={styles.tipBox}>
+              <Ionicons name="bulb" size={20} color={COLORS.primary} />
+              <Text style={styles.tipText}>
+                {monthlySummary.isDebt
+                  ? `Tip: You spent most on ${monthlySummary.topCategory}. Try setting a tighter budget for it next month!`
+                  : `Tip: Great job saving! Consider putting this ${currencySymbol}${Math.abs(monthlySummary.savings).toFixed(0)} into your emergency fund.`}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.closeModalBtn}
+              onPress={() => setShowSummaryModal(false)}
+            >
+              <Text style={styles.closeModalBtnText}>Got it!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      {/* Notifications Modal */}
+      <Modal
+        visible={showNotifications}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowNotifications(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.notificationModalContainer}>
+            <Text style={styles.notificationModalTitle}>Notifications</Text>
+            <RNScrollView style={tailwind`w-full`} showsVerticalScrollIndicator={false}>
+              {dummyNotifications.map(nav => (
+                <View key={nav.id} style={styles.notificationItem}>
+                  <View style={[styles.notificationIconBox, { backgroundColor: `${getNotificationIconColor(nav.type)}20` }]}>
+                    <Ionicons
+                      name={nav.type === 'success' ? 'checkmark-circle' : nav.type === 'warning' ? 'warning' : 'information-circle'}
+                      size={24}
+                      color={getNotificationIconColor(nav.type)}
+                    />
+                  </View>
+                  <View style={tailwind`flex-1`}>
+                    <Text style={styles.notificationTitle}>{nav.title}</Text>
+                    <Text style={styles.notificationBody}>{nav.body}</Text>
+                    <Text style={styles.notificationDate}>{nav.date}</Text>
+                  </View>
+                </View>
+              ))}
+            </RNScrollView>
+            <TouchableOpacity
+              style={[styles.closeModalBtn, { marginTop: 20 }]}
+              onPress={() => setShowNotifications(false)}
+            >
+              <Text style={styles.closeModalBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   )
 }
@@ -213,6 +528,212 @@ const styles = StyleSheet.create({
   warningTextContent: { flex: 1 },
   warningTitle: { fontSize: 16, fontWeight: '800', color: COLORS.white },
   warningDesc: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600', marginTop: 2 },
+  calendarFilterInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.gray100,
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 15,
+    gap: 8,
+  },
+  calendarFilterText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textMain,
+    flex: 1,
+  },
+  changeMonthBtn: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  insightText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '700', marginTop: 4, fontStyle: 'italic' },
+  preClosingBanner: {
+    backgroundColor: '#0D9488', // Teal for info
+    borderRadius: 24,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+    ...SHADOW.md,
+  },
+  closingBannerSuccess: {
+    backgroundColor: COLORS.income,
+    borderRadius: 24,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+    ...SHADOW.md,
+  },
+  closingBannerWarning: {
+    backgroundColor: '#F59E0B', // Orange for warning
+    borderRadius: 24,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+    ...SHADOW.md,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  monthPickerContainer: {
+    width: '100%',
+    maxHeight: '60%',
+    backgroundColor: COLORS.white,
+    borderRadius: 32,
+    padding: 24,
+    ...SHADOW.lg,
+  },
+  monthPickerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.textMain,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  monthList: {
+    width: '100%',
+  },
+  monthItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray100,
+  },
+  monthItemActive: {
+    borderBottomColor: COLORS.primary,
+  },
+  monthItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textSub,
+  },
+  monthItemTextActive: {
+    color: COLORS.textMain,
+    fontWeight: '800',
+  },
+  summaryModalContainer: {
+    width: '100%',
+    backgroundColor: COLORS.white,
+    borderRadius: 32,
+    padding: 30,
+    alignItems: 'center',
+    ...SHADOW.lg,
+  },
+  summaryIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  summaryTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.textMain,
+    textAlign: 'center',
+  },
+  summaryAmount: {
+    fontSize: 40,
+    fontWeight: '900',
+    color: COLORS.textMain,
+    marginVertical: 10,
+  },
+  summarySub: {
+    fontSize: 14,
+    color: COLORS.textSub,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  tipBox: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.gray100,
+    padding: 20,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 30,
+    gap: 12,
+  },
+  tipText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.textMain,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  closeModalBtn: {
+    backgroundColor: COLORS.black,
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 20,
+    alignItems: 'center',
+    ...SHADOW.md,
+  },
+  closeModalBtnText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  notificationModalContainer: {
+    width: '100%',
+    maxHeight: '80%',
+    backgroundColor: COLORS.white,
+    borderRadius: 32,
+    padding: 24,
+    alignItems: 'center',
+    ...SHADOW.lg,
+  },
+  notificationModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.textMain,
+    marginBottom: 20,
+    alignSelf: 'flex-start',
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray100,
+  },
+  notificationIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textMain,
+    marginBottom: 4,
+  },
+  notificationBody: {
+    fontSize: 14,
+    color: COLORS.textSub,
+    lineHeight: 20,
+  },
+  notificationDate: {
+    fontSize: 12,
+    color: COLORS.gray400,
+    marginTop: 6,
+    fontWeight: '600',
+  }
 })
 
 export default Home

@@ -35,9 +35,9 @@ const BudgetSlider = ({ label, value, onValueChange, icon, color, currencySymbol
 const InitialBudgetSetup = ({ navigation }) => {
     const { setBudget, completeOnboarding, currencySymbol } = useContext(AppContext);
 
-    const [foodBudget, setFoodBudget] = useState(0);
-    const [transportBudget, setTransportBudget] = useState(0);
-    const [funBudget, setFunBudget] = useState(0);
+    const [foodBudget, setFoodBudget] = useState(500);
+    const [transportBudget, setTransportBudget] = useState(200);
+    const [funBudget, setFunBudget] = useState(300);
 
     const handleFinish = () => {
         setBudget('Food', foodBudget);

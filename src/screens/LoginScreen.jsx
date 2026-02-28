@@ -1,35 +1,22 @@
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, Image } from 'react-native'
 import React, { useState } from 'react'
 import tailwind from 'twrnc'
-import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import * as WebBrowser from 'expo-web-browser'
 import * as Google from 'expo-auth-session/providers/google'
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth'
 import { auth } from '../services/firebase'
+import { COLORS } from '../theme' // <-- Fixed named import
 
 WebBrowser.maybeCompleteAuthSession()
 
-/**
- * LoginScreen
- *
- * Currently shows the UI for Google Sign-In.
- * To activate real authentication:
- *
- * 1. Follow the setup steps in src/services/firebase.js
- * 2. Uncomment the import and call below:
- *    import { signInWithGoogle } from '../services/firestoreService'
- * 3. Replace handleGoogleSignIn body with:
- *    const userCredential = await signInWithGoogle()
- *    // Navigation is handled automatically by the auth gate in AppNavigator
- */
-
 const LoginScreen = ({ onSkip }) => {
+    const [isLogin, setIsLogin] = useState(true)
     const [loading, setLoading] = useState(false)
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [name, setName] = useState('')
 
-    // Using exact web client ID. Note: For a real Expo Go / EAS build, you usually need
-    // an explicitly created iOS/Android client ID or an Expo proxy setup.
-    // For this example, we assume the web client ID from your env vars mapped via proxy.
     const webClientId = process.env.EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID || 'missing-client-id';
     const androidClientId = process.env.EXPO_PUBLIC_FIREBASE_ANDROID_CLIENT_ID || webClientId;
 
@@ -46,9 +33,6 @@ const LoginScreen = ({ onSkip }) => {
             const credential = GoogleAuthProvider.credential(id_token);
             setLoading(true);
             signInWithCredential(auth, credential)
-                .then(() => {
-                    // Navigation handled automatically by AppNavigator's onAuthStateChanged observer
-                })
                 .catch((e) => {
                     console.log('Firebase credential auth error:', e)
                     alert('Sign in failed. Check console for details.')
@@ -59,67 +43,132 @@ const LoginScreen = ({ onSkip }) => {
 
     const handleGoogleSignIn = () => {
         if (!process.env.EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID) {
-            alert('Missing EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID in your .env file.\n\nPlease check src/services/firebase.js for setup steps.')
+            alert('Missing Google Client ID. Check environment variables.')
             return;
         }
         promptAsync();
     }
 
+    const handleEmailAuth = () => {
+        setLoading(true);
+        // Placeholder for Email Auth logic
+        setTimeout(() => {
+            setLoading(false);
+            alert(isLogin ? "Logged in (Demo)" : "Signed up (Demo)");
+            // Note: In real implementation, wire up Firebase SDK functions:
+            // signInWithEmailAndPassword or createUserWithEmailAndPassword
+        }, 1000)
+    }
+
     return (
-        <LinearGradient
-            colors={['#0f172a', '#1e293b', '#0f3460']}
-            style={tailwind`flex-1 justify-between px-8 py-16`}
+        <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: COLORS.background }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-            {/* Logo & Branding */}
-            <View style={tailwind`items-center mt-12`}>
-                <View style={tailwind`bg-green-500 w-24 h-24 rounded-3xl justify-center items-center mb-6 shadow-lg`}>
-                    <Text style={tailwind`text-5xl`}>💰</Text>
-                </View>
-                <Text style={tailwind`text-4xl font-bold text-white`}>Wallety</Text>
-                <Text style={tailwind`text-base text-gray-400 mt-2 text-center`}>
-                    Track your money.{'\n'}Build your future.
-                </Text>
-            </View>
+            <ScrollView contentContainerStyle={tailwind`flex-grow justify-center px-8 py-10`} showsVerticalScrollIndicator={false}>
 
-            {/* Feature highlights */}
-            <View style={tailwind`gap-3`}>
-                {[
-                    { icon: 'wallet-outline', text: 'Track expenses & income in one place' },
-                    { icon: 'pie-chart-outline', text: 'Visual spending insights by category' },
-                    { icon: 'shield-checkmark-outline', text: 'Cloud sync — data safe across devices' },
-                    { icon: 'trending-up-outline', text: 'Set budgets & hit your goals' },
-                ].map((f, i) => (
-                    <View key={i} style={tailwind`flex-row items-center`}>
-                        <View style={tailwind`bg-green-500 bg-opacity-20 w-10 h-10 rounded-full justify-center items-center mr-4`}>
-                            <Ionicons name={f.icon} size={20} color="#4ade80" />
-                        </View>
-                        <Text style={tailwind`text-gray-300 text-sm flex-1`}>{f.text}</Text>
+                {/* Logo & Branding */}
+                <View style={tailwind`items-center mt-10 mb-8`}>
+                    <View style={[tailwind`w-20 h-20 rounded-3xl justify-center items-center mb-4 p-2 bg-white`, { ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5 }, android: { elevation: 8 } }) }]}>
+                        <Image source={require('../../assets/wallety_logo.png')} style={tailwind`w-full h-full rounded-2xl`} resizeMode="contain" />
                     </View>
-                ))}
-            </View>
+                    <Text style={[tailwind`text-4xl font-extrabold`, { color: COLORS.textMain }]}>Wallety</Text>
+                    <Text style={[tailwind`text-sm mt-2 text-center font-semibold`, { color: COLORS.textSub }]}>
+                        Track your money. Build your future.
+                    </Text>
+                </View>
 
-            {/* Buttons */}
-            <View style={tailwind`gap-4`}>
-                <TouchableOpacity
-                    onPress={handleGoogleSignIn}
-                    disabled={loading}
-                    style={tailwind`bg-white rounded-2xl py-4 flex-row justify-center items-center`}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="#1a1a1a" />
-                    ) : (
-                        <>
-                            <Text style={tailwind`text-2xl mr-3`}>🔵</Text>
-                            <Text style={tailwind`text-gray-900 font-bold text-base`}>Continue with Google</Text>
-                        </>
+                {/* Auth Form */}
+                <View style={[tailwind`p-6 rounded-3xl mb-8`, { backgroundColor: COLORS.gray100 }]}>
+                    <Text style={[tailwind`text-2xl font-bold mb-6`, { color: COLORS.textMain }]}>
+                        {isLogin ? 'Welcome Back 👋' : 'Create Account ✨'}
+                    </Text>
+
+                    {!isLogin && (
+                        <View style={tailwind`mb-4`}>
+                            <Text style={[tailwind`text-xs font-bold ml-1 mb-2 uppercase`, { color: COLORS.textSub }]}>Full Name</Text>
+                            <TextInput
+                                style={[tailwind`px-4 py-4 rounded-2xl font-semibold`, { backgroundColor: COLORS.background, color: COLORS.textMain }]}
+                                placeholder="John Doe"
+                                placeholderTextColor={COLORS.gray400}
+                                value={name}
+                                onChangeText={setName}
+                            />
+                        </View>
                     )}
+
+                    <View style={tailwind`mb-4`}>
+                        <Text style={[tailwind`text-xs font-bold ml-1 mb-2 uppercase`, { color: COLORS.textSub }]}>Email Address</Text>
+                        <TextInput
+                            style={[tailwind`px-4 py-4 rounded-2xl font-semibold`, { backgroundColor: COLORS.background, color: COLORS.textMain }]}
+                            placeholder="you@example.com"
+                            placeholderTextColor={COLORS.gray400}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            value={email}
+                            onChangeText={setEmail}
+                        />
+                    </View>
+
+                    <View style={tailwind`mb-6`}>
+                        <Text style={[tailwind`text-xs font-bold ml-1 mb-2 uppercase`, { color: COLORS.textSub }]}>Password</Text>
+                        <TextInput
+                            style={[tailwind`px-4 py-4 rounded-2xl font-semibold`, { backgroundColor: COLORS.background, color: COLORS.textMain }]}
+                            placeholder="••••••••"
+                            placeholderTextColor={COLORS.gray400}
+                            secureTextEntry
+                            value={password}
+                            onChangeText={setPassword}
+                        />
+                    </View>
+
+                    <TouchableOpacity
+                        onPress={handleEmailAuth}
+                        disabled={loading}
+                        style={[tailwind`rounded-2xl py-4 items-center`, { backgroundColor: COLORS.primary }]}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color={COLORS.black} />
+                        ) : (
+                            <Text style={[tailwind`font-bold text-lg`, { color: COLORS.black }]}>
+                                {isLogin ? 'Log In' : 'Sign Up'}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={() => setIsLogin(!isLogin)}
+                        style={tailwind`mt-5 items-center`}
+                    >
+                        <Text style={[tailwind`font-semibold`, { color: COLORS.textSub }]}>
+                            {isLogin ? "Don't have an account? " : "Already have an account? "}
+                            <Text style={{ color: COLORS.primary }}>{isLogin ? 'Sign Up' : 'Log In'}</Text>
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Social Login */}
+                <View style={tailwind`items-center mb-6`}>
+                    <Text style={[tailwind`text-xs font-bold mb-4 uppercase`, { color: COLORS.gray500 }]}>Or continue with</Text>
+                    <TouchableOpacity
+                        onPress={handleGoogleSignIn}
+                        disabled={loading}
+                        style={[tailwind`flex-row items-center w-full justify-center py-4 rounded-2xl border`, { borderColor: COLORS.gray100, backgroundColor: COLORS.background }]}
+                    >
+                        <Ionicons name="logo-google" size={20} color={COLORS.textMain} style={tailwind`mr-3`} />
+                        <Text style={[tailwind`font-bold text-base`, { color: COLORS.textMain }]}>Google</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Offline Mode */}
+                <TouchableOpacity onPress={onSkip} style={tailwind`items-center py-4`}>
+                    <Text style={[tailwind`text-sm font-semibold underline`, { color: COLORS.gray400 }]}>
+                        Skip for now — use offline
+                    </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={onSkip} style={tailwind`items-center py-3`}>
-                    <Text style={tailwind`text-gray-400 text-sm`}>Skip for now — use offline</Text>
-                </TouchableOpacity>
-            </View>
-        </LinearGradient>
+            </ScrollView>
+        </KeyboardAvoidingView>
     )
 }
 

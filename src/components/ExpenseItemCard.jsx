@@ -7,12 +7,14 @@ import { AppContext } from '../Contex/ContextApi';
 const SWIPE_THRESHOLD = 80;
 
 const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
-  const { currencySymbol } = useContext(AppContext);
+  const { currencySymbol, categoriesList } = useContext(AppContext);
   const translateX = useRef(new Animated.Value(0)).current;
   const [swiped, setSwiped] = useState(false);
   const [startX, setStartX] = useState(0);
 
   const isIncome = item.type === 'income';
+
+  const catColor = categoriesList?.find(c => c.name === item.category?.name)?.color || item.category?.color || COLORS.gray200;
 
   const handleTouchStart = (e) => {
     setStartX(e.nativeEvent.pageX);
@@ -110,7 +112,7 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
               </View>
               <View style={styles.info}>
                 <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-                <View style={[styles.catBadge, { backgroundColor: isIncome ? '#D1FAE5' : (item.category?.color || COLORS.gray200) }]}>
+                <View style={[styles.catBadge, { backgroundColor: isIncome ? '#D1FAE5' : catColor }]}>
                   <Text style={[styles.catText, { color: isIncome ? '#065F46' : 'rgba(0,0,0,0.6)' }]}>
                     {isIncome ? 'Income' : (item.category?.name || 'Uncategorized')}
                   </Text>

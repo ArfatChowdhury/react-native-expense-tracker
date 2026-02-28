@@ -101,3 +101,34 @@ export const scheduleDailyReminder = async () => {
         },
     });
 };
+export const scheduleMonthlySummaryAlert = async () => {
+    // Schedule for the last day of the current month at 8 PM
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    // If today is already past the last day's 8 PM, schedule for next month
+    let triggerDate = new Date(lastDay);
+    triggerDate.setHours(20, 0, 0, 0);
+
+    if (now > triggerDate) {
+        const nextMonthLastDay = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+        triggerDate = new Date(nextMonthLastDay);
+        triggerDate.setHours(20, 0, 0, 0);
+    }
+
+    // Clear existing to avoid spam
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const hasSummaryAlert = scheduled.some(n => n.content.title === "📊 Monthly Summary Ready!");
+
+    if (hasSummaryAlert) return;
+
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title: "📊 Monthly Summary Ready!",
+            body: "Your final results for this month are in! Tap to see how you did.",
+            sound: true,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: triggerDate,
+    });
+};
