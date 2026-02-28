@@ -25,6 +25,8 @@ export const firebaseConfig = {
     appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
+console.log('Firebase Init - API Key available?', !!process.env.EXPO_PUBLIC_FIREBASE_API_KEY);
+
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 

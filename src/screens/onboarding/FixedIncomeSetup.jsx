@@ -16,6 +16,7 @@ const FixedIncomeSetup = ({ navigation }) => {
     const handleNext = () => {
         if (salary) {
             addRecurringTransaction({
+                id: 'setup-salary',
                 type: 'income',
                 title: 'Salary',
                 amount: parseFloat(salary),
@@ -24,6 +25,7 @@ const FixedIncomeSetup = ({ navigation }) => {
         }
         if (business) {
             addRecurringTransaction({
+                id: 'setup-business',
                 type: 'income',
                 title: 'Business Profit',
                 amount: parseFloat(business),
@@ -32,6 +34,7 @@ const FixedIncomeSetup = ({ navigation }) => {
         }
         if (sideHustle) {
             addRecurringTransaction({
+                id: 'setup-side-hustle',
                 type: 'income',
                 title: 'Side Hustle',
                 amount: parseFloat(sideHustle),

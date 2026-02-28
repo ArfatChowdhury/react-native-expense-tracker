@@ -4,9 +4,9 @@ import tailwind from 'twrnc'
 import { Ionicons } from '@expo/vector-icons'
 import * as WebBrowser from 'expo-web-browser'
 import * as Google from 'expo-auth-session/providers/google'
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth'
+import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { auth } from '../services/firebase'
-import { COLORS } from '../theme' // <-- Fixed named import
+import { COLORS, SHADOW } from '../theme' // <-- Fixed named import
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -49,15 +49,43 @@ const LoginScreen = ({ onSkip }) => {
         promptAsync();
     }
 
-    const handleEmailAuth = () => {
+    const handleEmailAuth = async () => {
+        // Basic Validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || !emailRegex.test(email)) {
+            alert('Please enter a valid email address.');
+            return;
+        }
+        if (!password || password.length < 6) {
+            alert('Password must be at least 6 characters.');
+            return;
+        }
+        if (!isLogin && !name) {
+            alert('Please enter your full name.');
+            return;
+        }
+
         setLoading(true);
-        // Placeholder for Email Auth logic
-        setTimeout(() => {
+        try {
+            if (isLogin) {
+                await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged in AppNavigator handles navigation
+            } else {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCredential.user, { displayName: name });
+                // onAuthStateChanged in AppNavigator handles navigation
+            }
+        } catch (error) {
+            let errorMsg = error.message;
+            if (error.code === 'auth/invalid-email') errorMsg = 'Invalid email address.';
+            if (error.code === 'auth/user-not-found') errorMsg = 'User not found.';
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') errorMsg = 'Incorrect email or password.';
+            if (error.code === 'auth/email-already-in-use') errorMsg = 'Email is already in use.';
+            if (error.code === 'auth/weak-password') errorMsg = 'Password should be at least 6 characters.';
+            alert(errorMsg);
+        } finally {
             setLoading(false);
-            alert(isLogin ? "Logged in (Demo)" : "Signed up (Demo)");
-            // Note: In real implementation, wire up Firebase SDK functions:
-            // signInWithEmailAndPassword or createUserWithEmailAndPassword
-        }, 1000)
+        }
     }
 
     return (
@@ -70,7 +98,7 @@ const LoginScreen = ({ onSkip }) => {
                 {/* Logo & Branding */}
                 <View style={tailwind`items-center mt-10 mb-8`}>
                     <View style={[tailwind`w-20 h-20 rounded-3xl justify-center items-center mb-4 p-2 bg-white`, { ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5 }, android: { elevation: 8 } }) }]}>
-                        <Image source={require('../../assets/wallety_logo.png')} style={tailwind`w-full h-full rounded-2xl`} resizeMode="contain" />
+                        <Image source={require('../../assets/icon.png')} style={tailwind`w-full h-full rounded-2xl`} resizeMode="contain" />
                     </View>
                     <Text style={[tailwind`text-4xl font-extrabold`, { color: COLORS.textMain }]}>Wallety</Text>
                     <Text style={[tailwind`text-sm mt-2 text-center font-semibold`, { color: COLORS.textSub }]}>
@@ -83,6 +111,22 @@ const LoginScreen = ({ onSkip }) => {
                     <Text style={[tailwind`text-2xl font-bold mb-6`, { color: COLORS.textMain }]}>
                         {isLogin ? 'Welcome Back 👋' : 'Create Account ✨'}
                     </Text>
+
+                    {/* Premium Segmented Toggle */}
+                    <View style={[tailwind`flex-row p-1 rounded-2xl mb-6`, { backgroundColor: COLORS.background }]}>
+                        <TouchableOpacity
+                            onPress={() => setIsLogin(true)}
+                            style={[tailwind`flex-1 py-3 rounded-xl items-center`, isLogin ? { backgroundColor: COLORS.primary, ...SHADOW.sm } : {}]}
+                        >
+                            <Text style={[tailwind`font-bold`, { color: isLogin ? COLORS.black : COLORS.textSub }]}>Log In</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setIsLogin(false)}
+                            style={[tailwind`flex-1 py-3 rounded-xl items-center`, !isLogin ? { backgroundColor: COLORS.primary, ...SHADOW.sm } : {}]}
+                        >
+                            <Text style={[tailwind`font-bold`, { color: !isLogin ? COLORS.black : COLORS.textSub }]}>Sign Up</Text>
+                        </TouchableOpacity>
+                    </View>
 
                     {!isLogin && (
                         <View style={tailwind`mb-4`}>
@@ -135,16 +179,6 @@ const LoginScreen = ({ onSkip }) => {
                             </Text>
                         )}
                     </TouchableOpacity>
-
-                    <TouchableOpacity
-                        onPress={() => setIsLogin(!isLogin)}
-                        style={tailwind`mt-5 items-center`}
-                    >
-                        <Text style={[tailwind`font-semibold`, { color: COLORS.textSub }]}>
-                            {isLogin ? "Don't have an account? " : "Already have an account? "}
-                            <Text style={{ color: COLORS.primary }}>{isLogin ? 'Sign Up' : 'Log In'}</Text>
-                        </Text>
-                    </TouchableOpacity>
                 </View>
 
                 {/* Social Login */}
@@ -168,7 +202,7 @@ const LoginScreen = ({ onSkip }) => {
                 </TouchableOpacity>
 
             </ScrollView>
-        </KeyboardAvoidingView>
+        </KeyboardAvoidingView >
     )
 }
 

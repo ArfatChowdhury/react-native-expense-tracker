@@ -1,4 +1,4 @@
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground, Modal, ScrollView as RNScrollView } from 'react-native'
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground, Modal, ScrollView as RNScrollView, Image } from 'react-native'
 import React, { useContext, useMemo } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -9,10 +9,11 @@ import ExpenseItemCard from '../components/ExpenseItemCard'
 import EmptyList from '../components/EmptyList'
 import DateFilterBar from '../components/DateFilterBar'
 import tailwind from 'twrnc'
+import { auth } from '../services/firebase'
 const Home = ({ navigation }) => {
   const {
     totalSpent, balance, expenses, allTransactions, handleEdit, handleDelete,
-    handleDeleteIncome, categoriesWithBudget, currencySymbol, monthlySummary
+    handleDeleteIncome, categoriesWithBudget, currencySymbol, monthlySummary, appNotifications, logAppNotification
   } = useContext(AppContext)
 
   const [selectedPeriod, setSelectedPeriod] = React.useState('month')
@@ -24,12 +25,7 @@ const Home = ({ navigation }) => {
   const [hasSeenPreClosingThisMonth, setHasSeenPreClosingThisMonth] = React.useState(false)
   const [showNotifications, setShowNotifications] = React.useState(false)
 
-  // Dummy notifications since NotificationService is system-level
-  const dummyNotifications = [
-    { id: '1', title: 'Monthly Summary Ready!', body: 'Your final results for this month are in! Tap to see.', date: 'Just now', type: 'info' },
-    { id: '2', title: '🚨 Budget Exceeded!', body: "You've used 100% of your Shopping budget!", date: '2 hours ago', type: 'warning' },
-    { id: '3', title: '💸 Expense Added', body: '✅ $45.00: Groceries', date: 'Yesterday', type: 'success' },
-  ];
+
 
   // Banner & Popup seen status logic
   React.useEffect(() => {
@@ -211,6 +207,7 @@ const Home = ({ navigation }) => {
             const currentMonth = new Date().toISOString().slice(0, 7);
             await AsyncStorage.setItem('summaryBannerDismissedMonth', currentMonth);
             setHasDismissedSummaryBanner(true);
+            logAppNotification("📊 Monthly Summary Ready!", "Your final results for this month are in! Tap to see how you did.", "info");
           }}
           style={tailwind`p-2`}
         >
@@ -224,14 +221,23 @@ const Home = ({ navigation }) => {
     <View style={styles.headerContainer}>
       {/* Header Top */}
       <View style={styles.topBar}>
-        <View>
-          <Text style={styles.greeting}>Hello👋</Text>
-          <Text style={styles.subGreeting}>Start tracking your expenses</Text>
+        <View style={tailwind`flex-row items-center gap-3`}>
+          {auth.currentUser?.photoURL ? (
+            <Image source={{ uri: auth.currentUser.photoURL }} style={styles.profilePic} />
+          ) : (
+            <View style={[styles.profilePic, { backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' }]}>
+              <Ionicons name="person" size={20} color={COLORS.black} />
+            </View>
+          )}
+          <View>
+            <Text style={styles.greeting}>Hi, {auth.currentUser?.displayName?.split(" ")[0] || "User"} 👋</Text>
+            <Text style={styles.subGreeting}>Welcome back!</Text>
+          </View>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowNotifications(true)}>
             <Ionicons name="notifications-outline" size={22} color={COLORS.textMain} />
-            <View style={styles.dot} />
+            {appNotifications?.length > 0 && <View style={styles.dot} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -250,7 +256,7 @@ const Home = ({ navigation }) => {
 
         <View style={styles.balanceFooter}>
           <View style={styles.footerItem}>
-            <Text style={styles.footerLabel}>Filtered Balance</Text>
+            <Text style={styles.footerLabel}>Balance left to spend</Text>
             <Text style={styles.footerValue}>{currencySymbol}{Number(displayTotals.balance).toFixed(2)}</Text>
           </View>
         </View>
@@ -406,11 +412,13 @@ const Home = ({ navigation }) => {
           <View style={styles.notificationModalContainer}>
             <Text style={styles.notificationModalTitle}>Notifications</Text>
             <RNScrollView style={tailwind`w-full`} showsVerticalScrollIndicator={false}>
-              {dummyNotifications.map(nav => (
+              {(!appNotifications || appNotifications.length === 0) ? (
+                <Text style={[tailwind`text-center text-gray-400 mt-10`, { fontWeight: '600' }]}>No notifications yet.</Text>
+              ) : appNotifications.map(nav => (
                 <View key={nav.id} style={styles.notificationItem}>
                   <View style={[styles.notificationIconBox, { backgroundColor: `${getNotificationIconColor(nav.type)}20` }]}>
                     <Ionicons
-                      name={nav.type === 'success' ? 'checkmark-circle' : nav.type === 'warning' ? 'warning' : 'information-circle'}
+                      name={nav.type === 'warning' ? 'warning' : 'information-circle'}
                       size={24}
                       color={getNotificationIconColor(nav.type)}
                     />
@@ -449,8 +457,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 25,
   },
-  greeting: { fontSize: 32, fontWeight: '800', color: COLORS.textMain },
-  subGreeting: { fontSize: 14, color: COLORS.textSub, marginTop: 2 },
+  greeting: { fontSize: 22, fontWeight: '800', color: COLORS.textMain },
+  subGreeting: { fontSize: 13, color: COLORS.textSub, marginTop: 2, fontWeight: '600' },
+  profilePic: { width: 50, height: 50, borderRadius: 25, borderWidth: 1.5, borderColor: COLORS.border },
 
   headerActions: { flexDirection: 'row', gap: 12 },
   iconBtn: {

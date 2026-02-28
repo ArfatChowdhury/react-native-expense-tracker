@@ -1,17 +1,53 @@
-import { Alert, Share, Switch, Text, TouchableOpacity, View, StyleSheet, ScrollView, StatusBar } from 'react-native'
+import { Alert, Share, Switch, Text, TouchableOpacity, View, StyleSheet, ScrollView, StatusBar, Image, TextInput, Modal, ActivityIndicator } from 'react-native'
 import React, { useContext } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons'
 import { AppContext } from '../Contex/ContextApi'
 import { COLORS, SHADOW } from '../theme'
-
+import { auth } from '../services/firebase'
+import { updateProfile } from 'firebase/auth'
+import tailwind from 'twrnc'
 
 const Settings = ({ navigation }) => {
     const {
         expenses, incomes, currency, currencySymbol, setExpenses, setIncomes,
-        isDarkMode, toggleDarkMode, recurringTransactions, setRecurringTransactions
+        isDarkMode, toggleDarkMode, recurringTransactions, setRecurringTransactions,
+        handleLogout, userName, setUserName
     } = useContext(AppContext)
+
+    const [isEditModalVisible, setEditModalVisible] = React.useState(false)
+    const [newName, setNewName] = React.useState(auth.currentUser?.displayName || '')
+    const [isUpdating, setIsUpdating] = React.useState(false)
+
+    const onLogoutPress = () => {
+        Alert.alert(
+            "Logout",
+            "Are you sure you want to log out?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Logout",
+                    style: "destructive",
+                    onPress: handleLogout
+                }
+            ]
+        )
+    }
+
+    const handleUpdateName = async () => {
+        if (!newName.trim()) return;
+        setIsUpdating(true);
+        try {
+            await updateProfile(auth.currentUser, { displayName: newName.trim() });
+            setUserName(newName.trim());
+            setEditModalVisible(false);
+        } catch (error) {
+            Alert.alert("Error", "Failed to update name.");
+        } finally {
+            setIsUpdating(false);
+        }
+    }
 
     const handleClearAll = () => {
         Alert.alert(
@@ -86,15 +122,38 @@ const Settings = ({ navigation }) => {
                     <Text style={styles.subtitle}>Preferances and settings</Text>
                 </View>
 
-                {/* Profile Card Mockup */}
+                {/* Profile Card */}
                 <View style={styles.profileCard}>
-                    <View style={styles.avatar}>
-                        <Ionicons name="person" size={40} color="white" />
+                    {auth.currentUser?.photoURL ? (
+                        <Image source={{ uri: auth.currentUser.photoURL }} style={styles.avatarPic} />
+                    ) : (
+                        <View style={styles.avatar}>
+                            <Ionicons name="person" size={40} color="white" />
+                        </View>
+                    )}
+                    <View style={tailwind`flex-1`}>
+                        <View style={tailwind`flex-row items-center gap-2`}>
+                            <Text style={styles.profileName} numberOfLines={1}>
+                                {auth.currentUser?.displayName || 'Premium User'}
+                            </Text>
+                            <View style={styles.premiumBadge}>
+                                <Ionicons name="star" size={10} color={COLORS.black} />
+                                <Text style={styles.premiumText}>PRO</Text>
+                            </View>
+                        </View>
+                        <Text style={styles.profileEmail} numberOfLines={1}>
+                            {auth.currentUser?.email || 'Diamond Member'}
+                        </Text>
                     </View>
-                    <View>
-                        <Text style={styles.profileName}>Premium User</Text>
-                        <Text style={styles.profileRole}>Diamond Member</Text>
-                    </View>
+                    <TouchableOpacity
+                        onPress={() => {
+                            setNewName(auth.currentUser?.displayName || '');
+                            setEditModalVisible(true);
+                        }}
+                        style={styles.editBtn}
+                    >
+                        <Ionicons name="pencil" size={18} color="white" />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Preferences Section */}
@@ -141,6 +200,13 @@ const Settings = ({ navigation }) => {
                         onPress={handleClearAll}
                         danger
                     />
+                    <MenuItem
+                        icon="log-out-outline"
+                        label="Logout"
+                        subtitle="Sign out of your account"
+                        onPress={onLogoutPress}
+                        danger
+                    />
                 </View>
 
                 {/* Footer */}
@@ -149,6 +215,46 @@ const Settings = ({ navigation }) => {
                     <Text style={styles.footerMoto}>Premium Financial Tracking</Text>
                 </View>
             </ScrollView>
+
+            <Modal
+                visible={isEditModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setEditModalVisible(false)}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Update Name</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={newName}
+                            onChangeText={setNewName}
+                            placeholder="Enter your name"
+                            placeholderTextColor={COLORS.gray400}
+                            autoFocus
+                        />
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.cancelBtn]}
+                                onPress={() => setEditModalVisible(false)}
+                            >
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.saveBtn]}
+                                onPress={handleUpdateName}
+                                disabled={isUpdating}
+                            >
+                                {isUpdating ? (
+                                    <ActivityIndicator size="small" color="white" />
+                                ) : (
+                                    <Text style={styles.saveBtnText}>Save</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     )
 }
@@ -172,8 +278,47 @@ const styles = StyleSheet.create({
         ...SHADOW.md,
     },
     avatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-    profileName: { color: 'white', fontSize: 20, fontWeight: '800' },
-    profileRole: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600', marginTop: 2 },
+    avatarPic: { width: 70, height: 70, borderRadius: 35, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
+    profileName: { color: 'white', fontSize: 18, fontWeight: '800' },
+    profileEmail: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '600', marginTop: 2 },
+    premiumBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        gap: 2,
+    },
+    premiumText: { color: COLORS.black, fontSize: 10, fontWeight: '900' },
+    editBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    modalContent: { backgroundColor: COLORS.white, width: '100%', borderRadius: 28, padding: 24, ...SHADOW.lg },
+    modalTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textMain, marginBottom: 20 },
+    input: {
+        backgroundColor: COLORS.gray100,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderRadius: 16,
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.textMain,
+        marginBottom: 24,
+    },
+    modalButtons: { flexDirection: 'row', gap: 12 },
+    modalBtn: { flex: 1, paddingVertical: 14, borderRadius: 16, alignItems: 'center' },
+    cancelBtn: { backgroundColor: COLORS.gray100 },
+    cancelBtnText: { color: COLORS.textSub, fontWeight: '700' },
+    saveBtn: { backgroundColor: COLORS.black },
+    saveBtnText: { color: COLORS.white, fontWeight: '700' },
 
     section: { marginBottom: 35 },
     sectionHeader: { fontSize: 12, fontWeight: '800', color: COLORS.gray400, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 15, paddingHorizontal: 25 },

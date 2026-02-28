@@ -17,6 +17,7 @@ const FixedExpensesSetup = ({ navigation }) => {
     const handleNext = () => {
         if (insurance) {
             addRecurringTransaction({
+                id: 'setup-insurance',
                 type: 'expense',
                 title: 'Insurance',
                 amount: parseFloat(insurance),
@@ -25,6 +26,7 @@ const FixedExpensesSetup = ({ navigation }) => {
         }
         if (rent) {
             addRecurringTransaction({
+                id: 'setup-rent',
                 type: 'expense',
                 title: 'Rent',
                 amount: parseFloat(rent),
@@ -33,6 +35,7 @@ const FixedExpensesSetup = ({ navigation }) => {
         }
         if (debt) {
             addRecurringTransaction({
+                id: 'setup-debt',
                 type: 'expense',
                 title: 'Bank Debt',
                 amount: parseFloat(debt),

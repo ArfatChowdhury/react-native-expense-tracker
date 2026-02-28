@@ -9,7 +9,7 @@ import { COLORS, SHADOW } from '../theme'
 import RenderInsightitem from '../components/RenderInsightitem'
 
 const Insight = () => {
-  const { filteredExpenses, expenses, totalSpent, totalIncome, balance } = useContext(AppContext)
+  const { filteredExpenses, expenses, totalSpent, totalIncome, balance, categoriesList } = useContext(AppContext)
   const allExpenses = filteredExpenses?.length > 0 ? filteredExpenses : expenses
 
   if (totalSpent === 0 || expenses.length === 0) {
@@ -36,7 +36,8 @@ const Insight = () => {
   const chartData = Object.keys(spendingByCategory).map((categoryName) => {
     const amount = spendingByCategory[categoryName]
     const percentage = Math.round((amount / (periodTotal || 1)) * 100)
-    const categoryInfo = categories.find((cat) => cat.name === categoryName)
+    // Find in categoriesList to support Custom Categories
+    const categoryInfo = categoriesList.find((cat) => cat.name === categoryName)
     return {
       value: percentage,
       color: categoryInfo?.color || COLORS.gray400,
@@ -47,7 +48,7 @@ const Insight = () => {
 
   const flatListData = Object.keys(spendingByCategory).map((categoryName) => {
     const amount = spendingByCategory[categoryName]
-    const categoryInfo = categories.find((cat) => cat.name === categoryName)
+    const categoryInfo = categoriesList.find((cat) => cat.name === categoryName)
     return {
       id: categoryName,
       category: {

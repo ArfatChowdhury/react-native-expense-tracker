@@ -2,7 +2,7 @@ import { createContext, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { categories } from "../Data/categoriesData";
-import { registerForPushNotificationsAsync, scheduleBudgetAlert, scheduleMonthlySummaryAlert } from "../services/NotificationService";
+import { registerForPushNotificationsAsync, sendBudgetWarning, scheduleMonthlySummaryAlert } from "../services/NotificationService";
 
 export const AppContext = createContext()
 
@@ -23,6 +23,22 @@ export const AppContextProvider = ({ children }) => {
     const [isFirstLaunch, setIsFirstLaunch] = useState(null) // null for initial loading
     const [userName, setUserNameState] = useState('');
     const [recurringTransactions, setRecurringTransactions] = useState([]);
+    const [appNotifications, setAppNotifications] = useState([]);
+
+    const logAppNotification = (title, body, type = 'info') => {
+        setAppNotifications(prev => {
+            const newNotif = {
+                id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                title,
+                body,
+                type,
+                date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+            };
+            const updated = [newNotif, ...prev].slice(0, 50); // Keep last 50
+            AsyncStorage.setItem('appNotifications', JSON.stringify(updated));
+            return updated;
+        });
+    };
 
     const getCurrencySymbol = (code) => {
         const symbols = {
@@ -86,7 +102,7 @@ export const AppContextProvider = ({ children }) => {
 
     const loadData = async () => {
         try {
-            const [storedExpenses, storedIncomes, storedBudgets, storedCurrency, storedDarkMode, storedCategories, storedFirstLaunch, storedUserName, storedRecurring, storedLastProcessed] = await Promise.all([
+            const [storedExpenses, storedIncomes, storedBudgets, storedCurrency, storedDarkMode, storedCategories, storedFirstLaunch, storedUserName, storedRecurring, storedLastProcessed, storedNotifs] = await Promise.all([
                 AsyncStorage.getItem('expenses'),
                 AsyncStorage.getItem('incomes'),
                 AsyncStorage.getItem('budgets'),
@@ -97,6 +113,7 @@ export const AppContextProvider = ({ children }) => {
                 AsyncStorage.getItem('userName'),
                 AsyncStorage.getItem('recurringTransactions'),
                 AsyncStorage.getItem('lastProcessedMonth'),
+                AsyncStorage.getItem('appNotifications'),
             ]);
             if (storedExpenses) setExpenses(JSON.parse(storedExpenses));
             if (storedIncomes) setIncomes(JSON.parse(storedIncomes));
@@ -104,6 +121,8 @@ export const AppContextProvider = ({ children }) => {
             if (storedCurrency) setCurrencyState(storedCurrency);
             if (storedDarkMode) setIsDarkMode(JSON.parse(storedDarkMode));
             if (storedCategories) setCategoriesList(JSON.parse(storedCategories));
+
+            if (storedNotifs) setAppNotifications(JSON.parse(storedNotifs));
 
             // Recurring logic
             const recurring = storedRecurring ? JSON.parse(storedRecurring) : [];
@@ -172,8 +191,18 @@ export const AppContextProvider = ({ children }) => {
             else newExpenses.push(transaction);
         });
 
-        if (newExpenses.length > 0) setExpenses(prev => [...newExpenses, ...prev]);
-        if (newIncomes.length > 0) setIncomes(prev => [...newIncomes, ...prev]);
+        if (newExpenses.length > 0) {
+            setExpenses(prev => {
+                const uniqueNew = newExpenses.filter(nx => !prev.some(p => p.title === nx.title && p.date === nx.date));
+                return [...uniqueNew, ...prev];
+            });
+        }
+        if (newIncomes.length > 0) {
+            setIncomes(prev => {
+                const uniqueNew = newIncomes.filter(nx => !prev.some(p => p.title === nx.title && p.date === nx.date));
+                return [...uniqueNew, ...prev];
+            });
+        }
 
         await AsyncStorage.setItem('lastProcessedMonth', monthYear);
     };
@@ -182,9 +211,14 @@ export const AppContextProvider = ({ children }) => {
         setRecurringTransactions(prev => {
             const newItem = {
                 ...item,
-                id: `rec-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
+                id: item.id || `rec-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
             };
-            const updated = [...prev, newItem];
+            let updated;
+            if (item.id) {
+                updated = [...prev.filter(r => r.id !== item.id), newItem];
+            } else {
+                updated = [...prev, newItem];
+            }
             AsyncStorage.setItem('recurringTransactions', JSON.stringify(updated));
             return updated;
         });
@@ -264,11 +298,18 @@ export const AppContextProvider = ({ children }) => {
                     .reduce((sum, e) => sum + Number(e.amount), 0);
 
                 if (totalInCat > budgetLimit) {
-                    scheduleBudgetAlert(cat.name, totalInCat, budgetLimit);
+                    const percentage = Math.round((totalInCat / budgetLimit) * 100);
+                    sendBudgetWarning(cat.name, percentage);
+                    logAppNotification(
+                        percentage >= 100 ? "🚨 Budget Exceeded!" : "⚠️ Budget Warning",
+                        percentage >= 100 ? `You've used ${percentage}% of your ${cat.name} budget!` : `You've used ${percentage}% of your ${cat.name} budget.`,
+                        'warning'
+                    );
                 }
             }
             return updated;
         });
+        logAppNotification("💸 Expense Added", `✅ ${currencySymbol}${parseFloat(amt).toFixed(2)}: ${t.trim()}`, 'success');
         resetForm();
         if (navigation) navigation.navigate('Home');
     };
@@ -305,6 +346,7 @@ export const AppContextProvider = ({ children }) => {
             }
             return updated;
         });
+        logAppNotification("💸 Expense Updated", `✅ ${currencySymbol}${parseFloat(amount).toFixed(2)}: ${title.trim()}`, 'success');
         resetForm();
         navigation.navigate('Home');
     };
@@ -329,6 +371,7 @@ export const AppContextProvider = ({ children }) => {
             icon: '💰'
         };
         setIncomes(prev => [newIncome, ...prev]);
+        logAppNotification("💰 Income Added", `✅ ${currencySymbol}${parseFloat(amount).toFixed(2)}: ${source.trim()}`, 'success');
         resetForm();
         if (navigation) navigation.navigate('Home');
     };
@@ -348,6 +391,7 @@ export const AppContextProvider = ({ children }) => {
     const handleUpdateTransaction = (navigation, { type, title: t, amount: amt, category: cat }) => {
         if (type === 'income') {
             setIncomes(prev => prev.map(inv => inv.id === editingId ? { ...inv, source: t, amount: parseFloat(amt) } : inv));
+            logAppNotification("💰 Income Updated", `✅ ${currencySymbol}${parseFloat(amt).toFixed(2)}: ${t.trim()}`, 'success');
         } else {
             handleUpdateExpense(navigation);
             return;
@@ -376,6 +420,21 @@ export const AppContextProvider = ({ children }) => {
         const newMode = !isDarkMode;
         setIsDarkMode(newMode);
         AsyncStorage.setItem('isDarkMode', JSON.stringify(newMode)).catch(e => console.log('Error saving dark mode:', e));
+    };
+
+    const handleLogout = async () => {
+        try {
+            await auth.signOut();
+            // Local state reset if needed (most is fetched on login anyway)
+            setExpenses([]);
+            setIncomes([]);
+            setBudgets({});
+            setAppNotifications([]);
+            await AsyncStorage.multiRemove(['expenses', 'incomes', 'budgets', 'appNotifications']);
+        } catch (error) {
+            console.error("Logout Error:", error);
+            Alert.alert("Error", "Failed to log out properly.");
+        }
     };
 
     // ── Derived values (Monthly First) ────────────────────────
@@ -471,6 +530,8 @@ export const AppContextProvider = ({ children }) => {
         categoriesList,
         // Category actions
         handleAddCategory,
+        // Auth actions
+        handleLogout,
         // Date filter
         selectedPeriod, setSelectedPeriod,
         filteredExpenses,
@@ -496,6 +557,7 @@ export const AppContextProvider = ({ children }) => {
         handleAddIncome, handleDeleteIncome,
         // Unified Actions
         handleAddTransaction, handleUpdateTransaction,
+        appNotifications, logAppNotification,
     };
 
     return (
