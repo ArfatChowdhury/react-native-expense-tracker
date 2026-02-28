@@ -4,12 +4,12 @@ import { PieChart } from 'react-native-gifted-charts'
 import { AppContext } from '../Contex/ContextApi'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { categories } from '../Data/categoriesData'
 import { COLORS, SHADOW } from '../theme'
 import RenderInsightitem from '../components/RenderInsightitem'
 
 const Insight = () => {
-  const { filteredExpenses, expenses, totalSpent, totalIncome, balance, categoriesList } = useContext(AppContext)
+  const { filteredExpenses, expenses, totalSpent, totalIncome, balance, categoriesList, currencySymbol } = useContext(AppContext)
+  const [selectedCategory, setSelectedCategory] = React.useState(null)
   const allExpenses = filteredExpenses?.length > 0 ? filteredExpenses : expenses
 
   if (totalSpent === 0 || expenses.length === 0) {
@@ -36,7 +36,6 @@ const Insight = () => {
   const chartData = Object.keys(spendingByCategory).map((categoryName) => {
     const amount = spendingByCategory[categoryName]
     const percentage = Math.round((amount / (periodTotal || 1)) * 100)
-    // Find in categoriesList to support Custom Categories
     const categoryInfo = categoriesList.find((cat) => cat.name === categoryName)
     return {
       value: percentage,
@@ -63,36 +62,42 @@ const Insight = () => {
     <View style={styles.header}>
       <Text style={styles.title}>History & Insights</Text>
 
-      {/* Dynamic Summary Cards */}
       <View style={styles.summaryRow}>
         <View style={[styles.summaryCard, { backgroundColor: COLORS.income }]}>
           <Ionicons name="trending-up" size={16} color="white" />
-          <Text style={styles.summaryValue}>${totalIncome.toFixed(0)}</Text>
+          <Text style={styles.summaryValue}>{currencySymbol}{totalIncome.toFixed(0)}</Text>
           <Text style={styles.summaryLabel}>Income</Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: COLORS.expense }]}>
           <Ionicons name="trending-down" size={16} color="white" />
-          <Text style={styles.summaryValue}>${totalSpent.toFixed(0)}</Text>
+          <Text style={styles.summaryValue}>{currencySymbol}{totalSpent.toFixed(0)}</Text>
           <Text style={styles.summaryLabel}>Spent</Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: COLORS.card }]}>
           <Ionicons name="wallet" size={16} color="white" />
-          <Text style={styles.summaryValue}>${Math.abs(balance).toFixed(0)}</Text>
+          <Text style={styles.summaryValue}>{currencySymbol}{Math.abs(balance).toFixed(0)}</Text>
           <Text style={styles.summaryLabel}>Balance</Text>
         </View>
       </View>
 
-      {/* Chart Section */}
       <View style={styles.chartWrapper}>
         <PieChart
           donut
+          isAnimated={false}
+          animationDuration={1000}
           data={chartData}
           radius={110}
           innerRadius={80}
+          focusOnPress
+          onPress={(item) => setSelectedCategory(item.label === selectedCategory ? null : item.label)}
           centerLabelComponent={() => (
             <View style={{ alignItems: 'center' }}>
-              <Text style={styles.chartTotal}>${periodTotal.toFixed(0)}</Text>
-              <Text style={styles.chartLabel}>Total</Text>
+              <Text style={styles.chartTotal}>
+                {currencySymbol}{selectedCategory
+                  ? spendingByCategory[selectedCategory]?.toFixed(0)
+                  : periodTotal.toFixed(0)}
+              </Text>
+              <Text style={styles.chartLabel}>{selectedCategory || 'Total'}</Text>
             </View>
           )}
         />
@@ -102,11 +107,15 @@ const Insight = () => {
     </View>
   )
 
+  const filteredFlatData = selectedCategory
+    ? flatListData.filter(item => item.id === selectedCategory)
+    : flatListData
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="dark-content" />
       <FlatList
-        data={flatListData}
+        data={filteredFlatData}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={<ListHeader />}
         renderItem={({ item }) => <RenderInsightitem item={item} />}

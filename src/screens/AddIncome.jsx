@@ -18,7 +18,7 @@ const INCOME_SOURCES = [
 ]
 
 const AddIncome = ({ navigation }) => {
-    const { handleAddIncome, incomes, handleDeleteIncome, totalIncome } = useContext(AppContext)
+    const { handleAddIncome, incomes, handleDeleteIncome, totalIncome, currencySymbol } = useContext(AppContext)
     const [amount, setAmount] = useState('')
     const [source, setSource] = useState('')
     const [selectedSource, setSelectedSource] = useState(null)
@@ -57,13 +57,13 @@ const AddIncome = ({ navigation }) => {
                     style={tailwind`rounded-2xl p-5 mb-5 items-center`}
                 >
                     <Text style={tailwind`text-green-300 text-sm`}>Total Income</Text>
-                    <Text style={tailwind`text-white text-4xl font-bold mt-1`}>${totalIncome.toFixed(2)}</Text>
+                    <Text style={tailwind`text-white text-4xl font-bold mt-1`}>{currencySymbol}{totalIncome.toFixed(2)}</Text>
                 </LinearGradient>
 
                 {/* Amount input */}
                 <Text style={tailwind`text-black font-semibold mb-2`}>Amount</Text>
                 <TextInput
-                    placeholder="$0.00"
+                    placeholder={`${currencySymbol}0.00`}
                     style={tailwind`border-2 rounded-xl ${activeField === 'amount' ? 'border-green-400' : 'border-gray-300'} p-4 text-lg mb-5 bg-white`}
                     keyboardType="decimal-pad"
                     value={amount}
@@ -130,7 +130,7 @@ const AddIncome = ({ navigation }) => {
                                     </View>
                                 </View>
                                 <View style={tailwind`items-end`}>
-                                    <Text style={tailwind`text-green-600 font-bold text-base`}>+${item.amount}</Text>
+                                    <Text style={tailwind`text-green-600 font-bold text-base`}>+{currencySymbol}{item.amount}</Text>
                                     <TouchableOpacity onPress={() => confirmDelete(item.id)}>
                                         <Ionicons name="trash-outline" size={16} color="#ef4444" />
                                     </TouchableOpacity>

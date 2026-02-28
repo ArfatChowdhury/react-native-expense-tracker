@@ -8,12 +8,13 @@ import { COLORS, SHADOW } from '../theme'
 import { auth } from '../services/firebase'
 import { updateProfile } from 'firebase/auth'
 import tailwind from 'twrnc'
+import { exportTransactionsToPDF } from '../services/ExportService'
 
 const Settings = ({ navigation }) => {
     const {
         expenses, incomes, currency, currencySymbol, setExpenses, setIncomes,
         isDarkMode, toggleDarkMode, recurringTransactions, setRecurringTransactions,
-        handleLogout, userName, setUserName
+        handleLogout, userName, setUserName, allTransactions
     } = useContext(AppContext)
 
     const [isEditModalVisible, setEditModalVisible] = React.useState(false)
@@ -76,7 +77,7 @@ const Settings = ({ navigation }) => {
             `Expense,"${e.title}",${e.amount},"${e.category?.name || ''}",${e.date}`
         ).join('\n')
         const incomeRows = incomes.map(i =>
-            `Income,"${i.source}",${i.amount},,${i.date}`
+            `Income,"${i.source || i.title || ''}",${i.amount},,${i.date}`
         ).join('\n')
         const csv = header + expenseRows + (incomeRows ? '\n' + incomeRows : '')
 
@@ -84,6 +85,14 @@ const Settings = ({ navigation }) => {
             message: csv,
             title: 'My Expense Data',
         })
+    }
+
+    const handleExportPDF = async () => {
+        try {
+            await exportTransactionsToPDF(allTransactions, currencySymbol, auth.currentUser?.displayName || userName);
+        } catch (error) {
+            Alert.alert("Error", "Failed to generate PDF report.");
+        }
     }
 
     const MenuItem = ({ icon, label, subtitle, onPress, danger, isSwitch }) => (
@@ -165,12 +174,12 @@ const Settings = ({ navigation }) => {
                         subtitle={`Currently using ${currency} (${currencySymbol})`}
                         onPress={() => navigation.navigate('CurrencySetup', { isSettings: true })}
                     />
-                    <MenuItem
+                    {/* <MenuItem
                         icon="moon-outline"
                         label="Dark Mode"
                         subtitle={isDarkMode ? 'Appearance is Dark' : 'Appearance is Light'}
                         isSwitch
-                    />
+                    /> */}
                 </View>
 
                 {/* Recurring Items Section */}
@@ -189,9 +198,15 @@ const Settings = ({ navigation }) => {
                     <Text style={styles.sectionHeader}>Data & Security</Text>
                     <MenuItem
                         icon="cloud-download-outline"
-                        label="Export Data"
-                        subtitle={`${expenses.length + incomes.length} records available`}
+                        label="Export Data (CSV)"
+                        subtitle="Share raw transaction data"
                         onPress={handleExportCSV}
+                    />
+                    <MenuItem
+                        icon="document-text-outline"
+                        label="Export Report (PDF)"
+                        subtitle="Professional transaction summary"
+                        onPress={handleExportPDF}
                     />
                     <MenuItem
                         icon="trash-outline"

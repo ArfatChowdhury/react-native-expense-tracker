@@ -19,11 +19,13 @@ const INCOME_SOURCES = [
 const Create = ({ navigation, route }) => {
   const [activeField, setActiveField] = useState(null);
   const [type, setType] = useState('expense'); // 'income' or 'expense'
+  const [isSuggested, setIsSuggested] = useState(false);
 
   const {
     handleAddTransaction, category, setCategory,
     title, setTitle, amount, setAmount,
-    editingId, setEditingId, handleUpdateTransaction
+    editingId, setEditingId, handleUpdateTransaction, getCategorySuggestion,
+    currencySymbol
   } = useContext(AppContext)
 
   const isEditing = editingId !== null
@@ -63,9 +65,23 @@ const Create = ({ navigation, route }) => {
 
   useEffect(() => {
     if (route.params?.itemCat) {
-      setCategory(route.params?.itemCat)
+      setCategory(route.params.itemCat);
+      setIsSuggested(false);
     }
   }, [route.params?.itemCat])
+
+  useEffect(() => {
+    if (title && !isEditing && !category?.name && type === 'expense') {
+      const suggestion = getCategorySuggestion(title);
+      if (suggestion) {
+        setCategory(suggestion);
+        setIsSuggested(true);
+      }
+    }
+    if (!title) {
+      setIsSuggested(false);
+    }
+  }, [title]);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -101,7 +117,7 @@ const Create = ({ navigation, route }) => {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Amount</Text>
           <View style={[styles.amountInputWrap, activeField === 'amount' && styles.inputActive]}>
-            <Text style={styles.currency}>$</Text>
+            <Text style={styles.currency}>{currencySymbol}</Text>
             <TextInput
               placeholder="0.00"
               style={styles.amountInput}
@@ -115,76 +131,65 @@ const Create = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Dynamic Section based on Type */}
+        {/* Title / Source Input */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{type === 'expense' ? 'Title' : 'Source Name'}</Text>
+          <TextInput
+            placeholder={type === 'expense' ? "e.g. Grocery Shopping" : "e.g. Monthly Salary"}
+            style={[styles.input, activeField === 'title' && styles.inputActive]}
+            onFocus={() => setActiveField('title')}
+            onBlur={() => setActiveField(null)}
+            value={title}
+            onChangeText={setTitle}
+            placeholderTextColor={COLORS.gray400}
+          />
+        </View>
+
+        {/* Dynamic Section: Category for Expense, Quick Sources for Income */}
         {type === 'expense' ? (
-          <>
-            {/* Title Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Title</Text>
-              <TextInput
-                placeholder="e.g. Grocery Shopping"
-                style={[styles.input, activeField === 'title' && styles.inputActive]}
-                onFocus={() => setActiveField('title')}
-                onBlur={() => setActiveField(null)}
-                value={title}
-                onChangeText={setTitle}
-                placeholderTextColor={COLORS.gray400}
-              />
-            </View>
-
-            {/* Category Picker */}
-            <View style={styles.inputGroup}>
+          <View style={styles.inputGroup}>
+            <View style={styles.labelRow}>
               <Text style={styles.label}>Category</Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Category')}
-                style={[styles.input, !category?.name && styles.inputError]}
-              >
-                <View style={styles.categoryRow}>
-                  <View style={styles.catInfo}>
-                    <Text style={styles.catIcon}>{category?.icon || '📁'}</Text>
-                    <Text style={[styles.catName, !category?.name && { color: COLORS.gray400 }]}>
-                      {category?.name || 'Select Category'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={COLORS.gray400} />
+              {isSuggested && (
+                <View style={styles.suggestedBadge}>
+                  <Text style={styles.suggestedText}>✨ Auto-suggested</Text>
                 </View>
-              </TouchableOpacity>
+              )}
             </View>
-          </>
-        ) : (
-          <>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Income Source</Text>
-              <View style={styles.sourceGrid}>
-                {INCOME_SOURCES.map(src => (
-                  <TouchableOpacity
-                    key={src.name}
-                    onPress={() => handleSelectIncomeSource(src)}
-                    style={[
-                      styles.sourceChip,
-                      title === src.name ? styles.sourceChipActive : styles.sourceChipInactive
-                    ]}
-                  >
-                    <Text style={styles.sourceEmoji}>{src.icon}</Text>
-                    <Text style={[styles.sourceLabel, title === src.name && styles.sourceLabelActive]}>{src.name}</Text>
-                  </TouchableOpacity>
-                ))}
+            <TouchableOpacity
+              onPress={() => { setIsSuggested(false); navigation.navigate('Category'); }}
+              style={[styles.input, !category?.name && styles.inputError]}
+            >
+              <View style={styles.categoryRow}>
+                <View style={styles.catInfo}>
+                  <Text style={styles.catIcon}>{category?.icon || '📁'}</Text>
+                  <Text style={[styles.catName, !category?.name && { color: COLORS.gray400 }]}>
+                    {category?.name || 'Select Category'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.gray400} />
               </View>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Quick Select Source</Text>
+            <View style={styles.sourceGrid}>
+              {INCOME_SOURCES.map(src => (
+                <TouchableOpacity
+                  key={src.name}
+                  onPress={() => handleSelectIncomeSource(src)}
+                  style={[
+                    styles.sourceChip,
+                    title === src.name ? styles.sourceChipActive : styles.sourceChipInactive
+                  ]}
+                >
+                  <Text style={styles.sourceEmoji}>{src.icon}</Text>
+                  <Text style={[styles.sourceLabel, title === src.name && styles.sourceLabelActive]}>{src.name}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Custom Source</Text>
-              <TextInput
-                placeholder="e.g. Side Project"
-                style={[styles.input, activeField === 'title' && styles.inputActive]}
-                onFocus={() => setActiveField('title')}
-                onBlur={() => setActiveField(null)}
-                value={title}
-                onChangeText={setTitle}
-                placeholderTextColor={COLORS.gray400}
-              />
-            </View>
-          </>
+          </View>
         )}
 
         {/* Submit Button */}
@@ -253,7 +258,11 @@ const styles = StyleSheet.create({
   toggleTextActive: { color: COLORS.white },
 
   inputGroup: { marginBottom: 30 },
-  label: { fontSize: 14, fontWeight: '800', color: COLORS.gray500, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  label: { fontSize: 14, fontWeight: '800', color: COLORS.gray500, textTransform: 'uppercase', letterSpacing: 1 },
+
+  suggestedBadge: { backgroundColor: COLORS.income + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: COLORS.income + '30' },
+  suggestedText: { fontSize: 11, fontWeight: '700', color: COLORS.income },
 
   input: {
     backgroundColor: COLORS.white,

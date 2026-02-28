@@ -24,6 +24,7 @@ export const AppContextProvider = ({ children }) => {
     const [userName, setUserNameState] = useState('');
     const [recurringTransactions, setRecurringTransactions] = useState([]);
     const [appNotifications, setAppNotifications] = useState([]);
+    const [prevMonthSummary, setPrevMonthSummary] = useState(null);
 
     const logAppNotification = (title, body, type = 'info') => {
         setAppNotifications(prev => {
@@ -62,6 +63,13 @@ export const AppContextProvider = ({ children }) => {
     const [title, setTitle] = useState('')
     const [category, setCategory] = useState({})
     const [editingId, setEditingId] = useState(null)
+
+    const resetForm = () => {
+        setAmount('');
+        setTitle('');
+        setCategory({});
+        setEditingId(null);
+    };
 
     // ── Date filter ───────────────────────────────────────────
     const [selectedPeriod, setSelectedPeriod] = useState('all')
@@ -123,6 +131,11 @@ export const AppContextProvider = ({ children }) => {
             if (storedCategories) setCategoriesList(JSON.parse(storedCategories));
 
             if (storedNotifs) setAppNotifications(JSON.parse(storedNotifs));
+
+            const [storedPrevSummary] = await Promise.all([
+                AsyncStorage.getItem('prevMonthSummary')
+            ]);
+            if (storedPrevSummary) setPrevMonthSummary(JSON.parse(storedPrevSummary));
 
             // Recurring logic
             const recurring = storedRecurring ? JSON.parse(storedRecurring) : [];
@@ -187,7 +200,10 @@ export const AppContextProvider = ({ children }) => {
                 icon: item.category?.icon || '📦',
                 date: date,
             };
-            if (item.type === 'income') newIncomes.push(transaction);
+            if (item.type === 'income') {
+                transaction.source = item.title;
+                newIncomes.push(transaction);
+            }
             else newExpenses.push(transaction);
         });
 
@@ -373,6 +389,7 @@ export const AppContextProvider = ({ children }) => {
         setIncomes(prev => [newIncome, ...prev]);
         logAppNotification("💰 Income Added", `✅ ${currencySymbol}${parseFloat(amount).toFixed(2)}: ${source.trim()}`, 'success');
         resetForm();
+        Alert.alert("Success", "Income added successfully!");
         if (navigation) navigation.navigate('Home');
     };
 
@@ -511,11 +528,35 @@ export const AppContextProvider = ({ children }) => {
     }, [expenses, budgets, categoriesList]);
 
     // ── Helpers ───────────────────────────────────────────────
-    const resetForm = () => {
-        setAmount('');
-        setTitle('');
-        setCategory({});
-        setEditingId(null);
+    const getCategorySuggestion = (text) => {
+        if (!text) return null;
+        const lowerText = text.toLowerCase();
+
+        const suggestions = {
+            // Transport
+            'uber': 'Transport', 'bolt': 'Transport', 'taxi': 'Transport', 'grab': 'Transport', 'lyft': 'Transport', 'metro': 'Transport', 'subway': 'Transport', 'train': 'Transport', 'bus': 'Transport', 'fuel': 'Transport', 'gas': 'Transport', 'petrol': 'Transport', 'parking': 'Transport',
+            // Food & Dining
+            'kfc': 'Food', 'mcdonald': 'Food', 'burger': 'Food', 'pizza': 'Food', 'starbucks': 'Food', 'restaurant': 'Food', 'dinner': 'Food', 'lunch': 'Food', 'breakfast': 'Food', 'cafe': 'Food', 'subway': 'Food', 'domino': 'Food', 'dunkin': 'Food', 'food': 'Food', 'eat': 'Food',
+            // Bills & Utilities
+            'rent': 'Bills', 'electricity': 'Bills', 'water': 'Bills', 'internet': 'Bills', 'phone': 'Bills', 'mobile': 'Bills', 'utility': 'Bills', 'insurance': 'Bills', 'tax': 'Bills', 'council': 'Bills',
+            // Subscriptions
+            'netflix': 'Subscription', 'spotify': 'Subscription', 'apple': 'Subscription', 'youtube': 'Subscription', 'disney': 'Subscription', 'amazon prime': 'Subscription', 'hbo': 'Subscription', 'gym': 'Subscription',
+            // Shopping
+            'walmart': 'Shopping', 'amazon': 'Shopping', 'target': 'Shopping', 'grocery': 'Shopping', 'market': 'Shopping', 'shop': 'Shopping', 'store': 'Shopping', 'mall': 'Shopping', 'clothing': 'Shopping', 'ebay': 'Shopping', 'adidas': 'Shopping', 'nike': 'Shopping',
+            // Health
+            'hospital': 'Health', 'pharmacy': 'Health', 'doctor': 'Health', 'medicine': 'Health', 'dentist': 'Health', 'clinic': 'Health', 'vet': 'Health',
+            // Education
+            'school': 'Education', 'college': 'Education', 'university': 'Education', 'course': 'Education', 'tutor': 'Education', 'book': 'Education',
+            // Income
+            'salary': 'Income', 'bonus': 'Income', 'freelance': 'Income', 'dividend': 'Income', 'interest': 'Income', 'refund': 'Income'
+        };
+
+        for (const [key, cat] of Object.entries(suggestions)) {
+            if (lowerText.includes(key)) {
+                return categoriesList.find(c => c.name === cat) || categoriesList.find(c => c.name.includes(cat)) || null;
+            }
+        }
+        return null;
     };
 
     const value = {
@@ -546,7 +587,7 @@ export const AppContextProvider = ({ children }) => {
         // Derived
         allTransactions: [
             ...expenses.map(e => ({ ...e, type: 'expense' })),
-            ...incomes.map(i => ({ ...i, type: 'income', title: i.source, category: { name: 'Income', icon: '💰' } }))
+            ...incomes.map(i => ({ ...i, type: 'income', title: i.source || i.title, category: { name: 'Income', icon: '💰' } }))
         ].sort((a, b) => new Date(b.date) - new Date(a.date)),
         totalSpent, totalIncome, balance,
         monthlySummary,
@@ -558,6 +599,7 @@ export const AppContextProvider = ({ children }) => {
         // Unified Actions
         handleAddTransaction, handleUpdateTransaction,
         appNotifications, logAppNotification,
+        prevMonthSummary, getCategorySuggestion,
     };
 
     return (

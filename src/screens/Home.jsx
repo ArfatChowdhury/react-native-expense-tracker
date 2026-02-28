@@ -13,7 +13,8 @@ import { auth } from '../services/firebase'
 const Home = ({ navigation }) => {
   const {
     totalSpent, balance, expenses, allTransactions, handleEdit, handleDelete,
-    handleDeleteIncome, categoriesWithBudget, currencySymbol, monthlySummary, appNotifications, logAppNotification
+    handleDeleteIncome, categoriesWithBudget, currencySymbol, monthlySummary, appNotifications, logAppNotification,
+    prevMonthSummary
   } = useContext(AppContext)
 
   const [selectedPeriod, setSelectedPeriod] = React.useState('month')
@@ -245,19 +246,58 @@ const Home = ({ navigation }) => {
       {/* Balance Card */}
       <ImageBackground
         source={require('../../assets/card-bg.jpg')}
-        style={styles.balanceCard}
+        style={[
+          styles.balanceCard,
+          monthlySummary.isDebt && { borderColor: COLORS.expense, borderExtraWidth: 2 }
+        ]}
         imageStyle={{ borderRadius: 32 }}
       >
         <View style={styles.cardOverlay} />
-        <Text style={styles.balanceLabel}>
-          {selectedPeriod === 'all' ? 'Spent so far' : `${selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} Spending`}
-        </Text>
+        <View style={tailwind`w-full flex-row justify-between items-center`}>
+          <Text style={styles.balanceLabel}>
+            {selectedPeriod === 'all' ? 'Spent so far' : `${selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} Spending`}
+          </Text>
+          {prevMonthSummary && selectedPeriod === 'month' && (
+            <View style={styles.comparisonBadge}>
+              <Ionicons
+                name={displayTotals.spent > prevMonthSummary.totalSpent ? "trending-up" : "trending-down"}
+                size={12}
+                color={displayTotals.spent > prevMonthSummary.totalSpent ? COLORS.expense : COLORS.income}
+              />
+              <Text style={[styles.comparisonText, { color: displayTotals.spent > prevMonthSummary.totalSpent ? COLORS.expense : COLORS.income }]}>
+                {Math.abs(((displayTotals.spent - prevMonthSummary.totalSpent) / (prevMonthSummary.totalSpent || 1)) * 100).toFixed(0)}% vs last
+              </Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.balanceAmount}>{currencySymbol}{Number(displayTotals.spent).toFixed(2)}</Text>
+
+        {/* Budget Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBarBg}>
+            <View style={[
+              styles.progressBarFill,
+              {
+                width: `${Math.min((displayTotals.spent / (totalSpent + balance || 1)) * 100, 100)}%`,
+                backgroundColor: (displayTotals.spent / (totalSpent + balance || 1)) > 0.9 ? COLORS.expense : COLORS.primary
+              }
+            ]} />
+          </View>
+          <View style={tailwind`flex-row justify-between mt-1`}>
+            <Text style={styles.progressLabel}>Budget Usage</Text>
+            <Text style={styles.progressValue}>{Math.round((displayTotals.spent / (totalSpent + balance || 1)) * 100)}%</Text>
+          </View>
+        </View>
 
         <View style={styles.balanceFooter}>
           <View style={styles.footerItem}>
             <Text style={styles.footerLabel}>Balance left to spend</Text>
-            <Text style={styles.footerValue}>{currencySymbol}{Number(displayTotals.balance).toFixed(2)}</Text>
+            <Text style={[
+              styles.footerValue,
+              monthlySummary.isDebt && { color: COLORS.expense }
+            ]}>
+              {currencySymbol}{Number(displayTotals.balance).toFixed(2)}
+            </Text>
           </View>
         </View>
       </ImageBackground>
@@ -494,7 +534,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.7)', // Adjust opacity for the "multiply" look
   },
   balanceLabel: { color: COLORS.gray400, fontSize: 14, fontWeight: '600' },
-  balanceAmount: { color: COLORS.white, fontSize: 48, fontWeight: '900', marginTop: 8 },
+  balanceAmount: { color: COLORS.white, fontSize: 44, fontWeight: '900', marginTop: 8 },
+
+  comparisonBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  comparisonText: { fontSize: 10, fontWeight: '800' },
+
+  progressContainer: { width: '100%', marginTop: 20 },
+  progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { height: '100%', borderRadius: 3 },
+  progressLabel: { color: COLORS.gray400, fontSize: 10, fontWeight: '700' },
+  progressValue: { color: COLORS.white, fontSize: 10, fontWeight: '800' },
 
   balanceFooter: {
     width: '100%',

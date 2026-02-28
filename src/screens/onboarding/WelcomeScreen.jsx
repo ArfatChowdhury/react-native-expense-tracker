@@ -7,12 +7,7 @@ import { COLORS, SHADOW } from '../../theme'
 import { AppContext } from '../../Contex/ContextApi'
 
 const WelcomeScreen = ({ navigation }) => {
-    const { setUserName } = useContext(AppContext);
-    const [name, setName] = useState('');
-
     const handleNext = () => {
-        if (!name.trim()) return;
-        setUserName(name.trim());
         navigation.navigate('CurrencySetup');
     }
 
@@ -39,25 +34,33 @@ const WelcomeScreen = ({ navigation }) => {
                                 Your premium companion for tracking expenses and saving money with ease.
                             </Text>
 
-                            <View style={tailwind`mt-12`}>
-                                <Text style={tailwind`text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest`}>What's your name?</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Enter your name"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={name}
-                                    onChangeText={setName}
-                                    autoFocus
-                                />
+                            <View style={tailwind`mt-10 bg-white p-6 rounded-3xl shadow-sm border border-gray-100`}>
+                                <View style={tailwind`flex-row items-center gap-3 mb-4`}>
+                                    <View style={tailwind`w-10 h-10 rounded-xl bg-green-100 items-center justify-center`}>
+                                        <Ionicons name="flash" size={20} color="#10B981" />
+                                    </View>
+                                    <Text style={tailwind`text-base font-bold text-gray-800`}>Quick Smart Setup</Text>
+                                </View>
+                                <Text style={tailwind`text-sm text-gray-500 leading-5`}>
+                                    We'll help you set up your budget in 2 minutes. Your data stays private on your device.
+                                </Text>
+                                <View style={tailwind`mt-6 pt-6 border-t border-gray-100`}>
+                                    <View style={tailwind`flex-row items-center gap-3 mb-2`}>
+                                        <Ionicons name="calendar" size={18} color={COLORS.gray400} />
+                                        <Text style={tailwind`text-sm font-bold text-gray-700`}>Auto Month Close</Text>
+                                    </View>
+                                    <Text style={tailwind`text-xs text-gray-400 leading-4`}>
+                                        At the end of each month, Wallety automatically closes your period, saves your summary, and rolls over recurring bills for the next month.
+                                    </Text>
+                                </View>
                             </View>
                         </View>
 
                         <TouchableOpacity
-                            style={[styles.btn, !name.trim() && { opacity: 0.5 }]}
+                            style={styles.btn}
                             onPress={handleNext}
-                            disabled={!name.trim()}
                         >
-                            <Text style={styles.btnText}>Let's Get Started</Text>
+                            <Text style={styles.btnText}>Start Quick Setup</Text>
                             <Ionicons name="arrow-forward" size={24} color={COLORS.white} />
                         </TouchableOpacity>
                     </View>

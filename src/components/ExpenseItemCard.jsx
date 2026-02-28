@@ -103,7 +103,10 @@ const ExpenseItemCard = ({ item, onEdit, onDelete }) => {
         <TouchableOpacity
           activeOpacity={0.95}
           onPress={swiped ? closeSwipe : undefined}
-          style={styles.cardTouch}
+          style={[
+            styles.cardTouch,
+            { borderLeftColor: isIncome ? COLORS.income : catColor }
+          ]}
         >
           <View style={styles.cardContent}>
             <View style={styles.leftSection}>
@@ -183,6 +186,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 20,
+    borderLeftWidth: 6,
     ...SHADOW.md,
   },
   cardContent: {
