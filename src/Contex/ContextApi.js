@@ -159,6 +159,10 @@ export const AppContextProvider = ({ children }) => {
                 if (data.recurringTransactions) setRecurringTransactions(data.recurringTransactions);
                 if (data.prevMonthSummary) setPrevMonthSummary(data.prevMonthSummary);
                 if (typeof data.isSetupComplete === 'boolean') setIsSetupComplete(data.isSetupComplete);
+                if (data.lastProcessedMonth) {
+                    setLastProcessedMonth(data.lastProcessedMonth);
+                    await AsyncStorage.setItem(`lastProcessedMonth_${uid}`, data.lastProcessedMonth);
+                }
 
                 // If data has recurring items or expenses, assume setup is complete even if flag is missing
                 if (data.expenses?.length > 0 || data.recurringTransactions?.length > 0) {
@@ -175,8 +179,16 @@ export const AppContextProvider = ({ children }) => {
                     ['customCategories', JSON.stringify(data.customCategories || categories)],
                     ['recurringTransactions', JSON.stringify(data.recurringTransactions || [])],
                     ['prevMonthSummary', JSON.stringify(data.prevMonthSummary || null)],
-                    ['isSetupComplete', JSON.stringify(data.isSetupComplete || false)]
+                    ['isSetupComplete', JSON.stringify(data.isSetupComplete || false)],
+                    [`lastProcessedMonth_${uid}`, data.lastProcessedMonth || '']
                 ]);
+
+                // ── Trigger Rollover Check ──
+                // Now that cloud data (expenses/recurring) is loaded, check if we need to rollover
+                const currentMonthYear = getYearMonth();
+                if (data.lastProcessedMonth !== currentMonthYear) {
+                    setTimeout(() => checkAndResetMonth(uid), 1000);
+                }
             }
             setHasFetchedFromCloud(true);
         } catch (e) {
@@ -199,12 +211,13 @@ export const AppContextProvider = ({ children }) => {
                     customCategories: categoriesList,
                     recurringTransactions,
                     prevMonthSummary,
-                    isSetupComplete
+                    isSetupComplete,
+                    lastProcessedMonth: lastProcessedMonth
                 });
             }, 1500); // 1.5s debounce for heavier sync
             return () => clearTimeout(timer);
         }
-    }, [expenses, incomes, budgets, userName, currency, categoriesList, recurringTransactions, prevMonthSummary, isSetupComplete, isLoading, hasFetchedFromCloud]);
+    }, [expenses, incomes, budgets, userName, currency, categoriesList, recurringTransactions, prevMonthSummary, isSetupComplete, lastProcessedMonth, isLoading, hasFetchedFromCloud]);
 
     // Listen for Auth changes to fetch data
     useEffect(() => {
@@ -255,13 +268,17 @@ export const AppContextProvider = ({ children }) => {
             setIsFirstLaunch(storedFirstLaunch === null ? true : JSON.parse(storedFirstLaunch));
             if (storedUserName) setUserNameState(storedUserName);
 
-            if (storedLastProcessed) setLastProcessedMonth(storedLastProcessed);
+            // Per-user last processed month
+            const uid = auth.currentUser?.uid;
+            const userSpecificLastMonth = uid ? await AsyncStorage.getItem(`lastProcessedMonth_${uid}`) : storedLastProcessed;
+
+            if (userSpecificLastMonth) setLastProcessedMonth(userSpecificLastMonth);
 
             // Auto-log recurring items for current month if not done
             const currentMonthYear = getYearMonth();
-            if (storedLastProcessed !== currentMonthYear) {
+            if (userSpecificLastMonth !== currentMonthYear) {
                 // Wait for state to be fully loaded then trigger reset
-                setTimeout(() => checkAndResetMonth(), 500);
+                setTimeout(() => checkAndResetMonth(uid), 500);
             }
         } catch (error) {
             console.log('Error loading data:', error);
@@ -295,15 +312,15 @@ export const AppContextProvider = ({ children }) => {
         }
     };
 
-    const checkAndResetMonth = async () => {
+    const checkAndResetMonth = async (userUid = auth.currentUser?.uid) => {
         const currentMonthYear = getYearMonth();
-        const storedLastMonth = await AsyncStorage.getItem('lastProcessedMonth');
+        const storageKey = userUid ? `lastProcessedMonth_${userUid}` : 'lastProcessedMonth';
+        const storedLastMonth = await AsyncStorage.getItem(storageKey);
 
         if (storedLastMonth && storedLastMonth !== currentMonthYear) {
-            console.log(`Month changed from ${storedLastMonth} to ${currentMonthYear}`);
+            console.log(`Month changed from ${storedLastMonth} to ${currentMonthYear} for user ${userUid}`);
 
             // 1. Archive previous month's summary
-            // Use current state since loadData might have just finished or we are mid-session
             const monthExps = expenses.filter(e => e.date.startsWith(storedLastMonth));
             const monthIncs = incomes.filter(i => i.date.startsWith(storedLastMonth));
 
@@ -320,7 +337,7 @@ export const AppContextProvider = ({ children }) => {
             await AsyncStorage.setItem('prevMonthSummary', JSON.stringify(summary));
             setPrevMonthSummary(summary);
 
-            // 2. Add recurring transactions for new month (Idempotent check inside)
+            // 2. Add recurring transactions for new month (Idempotency check inside)
             if (recurringTransactions.length > 0) {
                 await processRecurring(recurringTransactions, currentMonthYear);
             }
@@ -335,12 +352,12 @@ export const AppContextProvider = ({ children }) => {
                 'success'
             );
 
-            // 4. Update last processed
-            await AsyncStorage.setItem('lastProcessedMonth', currentMonthYear);
+            // 4. Update last processed (Both local and sync will catch state update)
+            await AsyncStorage.setItem(storageKey, currentMonthYear);
             setLastProcessedMonth(currentMonthYear);
         } else if (!storedLastMonth) {
-            // First time setup of the tracker
-            await AsyncStorage.setItem('lastProcessedMonth', currentMonthYear);
+            // First time setup of the tracker for this user
+            await AsyncStorage.setItem(storageKey, currentMonthYear);
             setLastProcessedMonth(currentMonthYear);
         }
     };
