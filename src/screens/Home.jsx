@@ -1,5 +1,6 @@
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground, Modal, ScrollView as RNScrollView, Image } from 'react-native'
-import React, { useContext, useMemo } from 'react'
+import React, { useContext, useMemo, useCallback } from 'react'
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -14,13 +15,13 @@ const Home = ({ navigation }) => {
   const {
     totalSpent, balance, expenses, allTransactions, handleEdit, handleDelete,
     handleDeleteIncome, categoriesWithBudget, currencySymbol, monthlySummary, appNotifications, logAppNotification,
-    prevMonthSummary
+    prevMonthSummary, checkAndResetMonth, getLocalDate, getYearMonth
   } = useContext(AppContext)
 
   const [selectedPeriod, setSelectedPeriod] = React.useState('month')
   const [showMonthPicker, setShowMonthPicker] = React.useState(false)
   const [showSummaryModal, setShowSummaryModal] = React.useState(false)
-  const [selectedMonth, setSelectedMonth] = React.useState(new Date().toISOString().slice(0, 7)) // YYYY-MM
+  const [selectedMonth, setSelectedMonth] = React.useState(getYearMonth()) // YYYY-MM
   const [isBudgetWarningDismissed, setIsBudgetWarningDismissed] = React.useState(false)
   const [hasDismissedSummaryBanner, setHasDismissedSummaryBanner] = React.useState(false)
   const [hasSeenPreClosingThisMonth, setHasSeenPreClosingThisMonth] = React.useState(false)
@@ -31,7 +32,7 @@ const Home = ({ navigation }) => {
   // Banner & Popup seen status logic
   React.useEffect(() => {
     const checkSeenStatus = async () => {
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const currentMonth = getYearMonth();
       const [lastDismissedBanner, lastSeenPreClosing] = await Promise.all([
         AsyncStorage.getItem('summaryBannerDismissedMonth'),
         AsyncStorage.getItem('preClosingSeenMonth')
@@ -42,6 +43,12 @@ const Home = ({ navigation }) => {
     };
     checkSeenStatus();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkAndResetMonth();
+    }, [])
+  );
 
   const getNotificationIconColor = (type) => {
     if (type === 'success') return COLORS.income;
@@ -69,7 +76,7 @@ const Home = ({ navigation }) => {
   // Filter Transactions based on selectedPeriod
   const filteredTransactions = useMemo(() => {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = getLocalDate(now);
 
     return allTransactions.filter(item => {
       const itemDate = new Date(item.date);
@@ -80,7 +87,7 @@ const Home = ({ navigation }) => {
         return itemDate >= weekAgo;
       }
       if (selectedPeriod === 'month') {
-        return item.date.startsWith(now.toISOString().slice(0, 7));
+        return item.date.startsWith(getYearMonth(now));
       }
       if (selectedPeriod === 'calendar') {
         return item.date.startsWith(selectedMonth);
@@ -161,7 +168,7 @@ const Home = ({ navigation }) => {
           </View>
           <TouchableOpacity
             onPress={async () => {
-              const currentMonth = new Date().toISOString().slice(0, 7);
+              const currentMonth = getYearMonth();
               await AsyncStorage.setItem('preClosingSeenMonth', currentMonth);
               setHasSeenPreClosingThisMonth(true);
             }}
@@ -205,7 +212,7 @@ const Home = ({ navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={async () => {
-            const currentMonth = new Date().toISOString().slice(0, 7);
+            const currentMonth = getYearMonth();
             await AsyncStorage.setItem('summaryBannerDismissedMonth', currentMonth);
             setHasDismissedSummaryBanner(true);
             logAppNotification("📊 Monthly Summary Ready!", "Your final results for this month are in! Tap to see how you did.", "info");
@@ -278,14 +285,18 @@ const Home = ({ navigation }) => {
             <View style={[
               styles.progressBarFill,
               {
-                width: `${Math.min((displayTotals.spent / (totalSpent + balance || 1)) * 100, 100)}%`,
-                backgroundColor: (displayTotals.spent / (totalSpent + balance || 1)) > 0.9 ? COLORS.expense : COLORS.primary
+                width: `${Math.min((totalSpent / (totalSpent + balance > 0 ? (totalSpent + balance) : 1)) * 100, 100)}%`,
+                backgroundColor: (totalSpent / (totalSpent + balance > 0 ? (totalSpent + balance) : 1)) > 0.9 ? COLORS.expense : COLORS.primary
               }
             ]} />
           </View>
           <View style={tailwind`flex-row justify-between mt-1`}>
             <Text style={styles.progressLabel}>Budget Usage</Text>
-            <Text style={styles.progressValue}>{Math.round((displayTotals.spent / (totalSpent + balance || 1)) * 100)}%</Text>
+            <Text style={styles.progressValue}>
+              {(totalSpent + balance > 0)
+                ? `${Math.round((totalSpent / (totalSpent + balance)) * 100)}%`
+                : '0%'}
+            </Text>
           </View>
         </View>
 
@@ -366,7 +377,7 @@ const Home = ({ navigation }) => {
               {Array.from({ length: 12 }).map((_, i) => {
                 const d = new Date();
                 d.setMonth(d.getMonth() - i);
-                const val = d.toISOString().slice(0, 7);
+                const val = getYearMonth(d);
                 const label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
                 return (
                   <TouchableOpacity

@@ -29,6 +29,7 @@ export const AppContextProvider = ({ children }) => {
     const [prevMonthSummary, setPrevMonthSummary] = useState(null);
     const [hasFetchedFromCloud, setHasFetchedFromCloud] = useState(false);
     const [isSetupComplete, setIsSetupComplete] = useState(false);
+    const [lastProcessedMonth, setLastProcessedMonth] = useState(null);
 
     const logAppNotification = (title, body, type = 'info') => {
         setAppNotifications(prev => {
@@ -57,7 +58,17 @@ export const AppContextProvider = ({ children }) => {
 
     const getYearMonth = (date = new Date()) => {
         const d = new Date(date);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        return `${y}-${m}`;
+    };
+
+    const getLocalDate = (date = new Date()) => {
+        const d = new Date(date);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
     };
 
     const currencySymbol = getCurrencySymbol(currency);
@@ -83,6 +94,13 @@ export const AppContextProvider = ({ children }) => {
         loadData();
         registerForPushNotificationsAsync();
         scheduleMonthlySummaryAlert();
+
+        // Background check every hour
+        const interval = setInterval(() => {
+            checkAndResetMonth();
+        }, 60 * 60 * 1000);
+
+        return () => clearInterval(interval);
     }, []);
 
     // ── Persist expenses whenever they change ─────────────────
@@ -237,14 +255,13 @@ export const AppContextProvider = ({ children }) => {
             setIsFirstLaunch(storedFirstLaunch === null ? true : JSON.parse(storedFirstLaunch));
             if (storedUserName) setUserNameState(storedUserName);
 
+            if (storedLastProcessed) setLastProcessedMonth(storedLastProcessed);
+
             // Auto-log recurring items for current month if not done
             const currentMonthYear = getYearMonth();
-            if (storedLastProcessed !== currentMonthYear && recurring.length > 0) {
-                // Before processing new month, save previous month's summary for comparison
-                if (storedLastProcessed) {
-                    await cachePreviousMonthSummary(storedExpenses, storedIncomes, storedLastProcessed);
-                }
-                processRecurring(recurring, currentMonthYear);
+            if (storedLastProcessed !== currentMonthYear) {
+                // Wait for state to be fully loaded then trigger reset
+                setTimeout(() => checkAndResetMonth(), 500);
             }
         } catch (error) {
             console.log('Error loading data:', error);
@@ -278,7 +295,63 @@ export const AppContextProvider = ({ children }) => {
         }
     };
 
+    const checkAndResetMonth = async () => {
+        const currentMonthYear = getYearMonth();
+        const storedLastMonth = await AsyncStorage.getItem('lastProcessedMonth');
+
+        if (storedLastMonth && storedLastMonth !== currentMonthYear) {
+            console.log(`Month changed from ${storedLastMonth} to ${currentMonthYear}`);
+
+            // 1. Archive previous month's summary
+            // Use current state since loadData might have just finished or we are mid-session
+            const monthExps = expenses.filter(e => e.date.startsWith(storedLastMonth));
+            const monthIncs = incomes.filter(i => i.date.startsWith(storedLastMonth));
+
+            const totalE = monthExps.reduce((sum, e) => sum + Number(e.amount), 0);
+            const totalI = monthIncs.reduce((sum, i) => sum + Number(i.amount), 0);
+
+            const summary = {
+                monthYear: storedLastMonth,
+                totalSpent: totalE,
+                totalIncome: totalI,
+                savings: totalI - totalE
+            };
+
+            await AsyncStorage.setItem('prevMonthSummary', JSON.stringify(summary));
+            setPrevMonthSummary(summary);
+
+            // 2. Add recurring transactions for new month (Idempotent check inside)
+            if (recurringTransactions.length > 0) {
+                await processRecurring(recurringTransactions, currentMonthYear);
+            }
+
+            // 3. Log notification
+            logAppNotification(
+                "📅 New Month Started",
+                `Welcome to ${new Date().toLocaleString('default', { month: 'long' })}! ` +
+                (recurringTransactions.length > 0
+                    ? `${recurringTransactions.length} recurring items added.`
+                    : `Start adding your expenses for this month.`),
+                'success'
+            );
+
+            // 4. Update last processed
+            await AsyncStorage.setItem('lastProcessedMonth', currentMonthYear);
+            setLastProcessedMonth(currentMonthYear);
+        } else if (!storedLastMonth) {
+            // First time setup of the tracker
+            await AsyncStorage.setItem('lastProcessedMonth', currentMonthYear);
+            setLastProcessedMonth(currentMonthYear);
+        }
+    };
+
     const processRecurring = async (recurring, monthYear) => {
+        // Idempotency: don't add if recurring items for THIS specific month already exist
+        const alreadyHasRecurring = expenses.some(e => e.id?.startsWith('recurring-') && e.date.startsWith(monthYear)) ||
+            incomes.some(i => i.id?.startsWith('recurring-') && i.date.startsWith(monthYear));
+
+        if (alreadyHasRecurring) return;
+
         const newExpenses = [];
         const newIncomes = [];
         const date = `${monthYear}-01`;
@@ -289,7 +362,7 @@ export const AppContextProvider = ({ children }) => {
                 title: item.title,
                 amount: parseFloat(item.amount),
                 category: item.category,
-                icon: item.category?.icon || '📦',
+                icon: item.category?.icon || (item.type === 'income' ? '💰' : '📦'),
                 date: date,
             };
             if (item.type === 'income') {
@@ -300,16 +373,10 @@ export const AppContextProvider = ({ children }) => {
         });
 
         if (newExpenses.length > 0) {
-            setExpenses(prev => {
-                const uniqueNew = newExpenses.filter(nx => !prev.some(p => p.title === nx.title && p.date === nx.date));
-                return [...uniqueNew, ...prev];
-            });
+            setExpenses(prev => [...newExpenses, ...prev]);
         }
         if (newIncomes.length > 0) {
-            setIncomes(prev => {
-                const uniqueNew = newIncomes.filter(nx => !prev.some(p => p.title === nx.title && p.date === nx.date));
-                return [...uniqueNew, ...prev];
-            });
+            setIncomes(prev => [...newIncomes, ...prev]);
         }
 
         await AsyncStorage.setItem('lastProcessedMonth', monthYear);
@@ -394,7 +461,7 @@ export const AppContextProvider = ({ children }) => {
             category: cat,
             amount: parseFloat(parseFloat(amt).toFixed(2)),
             icon: cat.icon,
-            date: d || new Date().toISOString().split('T')[0],
+            date: d || getLocalDate(),
             type: 'expense'
         };
         setExpenses(prev => {
@@ -476,7 +543,7 @@ export const AppContextProvider = ({ children }) => {
             id: `inc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             source: source.trim(),
             amount: parseFloat(parseFloat(amount).toFixed(2)),
-            date: date || new Date().toISOString().split('T')[0],
+            date: date || getLocalDate(),
             type: 'income',
             icon: '💰'
         };
@@ -632,9 +699,16 @@ export const AppContextProvider = ({ children }) => {
         };
     }, [monthlyExpenses, balance]);
 
+    const allTransactions = useMemo(() => {
+        return [
+            ...expenses.map(e => ({ ...e, type: 'expense' })),
+            ...incomes.map(i => ({ ...i, type: 'income', title: i.source || i.title, category: { name: 'Income', icon: '💰' } }))
+        ].sort((a, b) => new Date(b.date) - new Date(a.date));
+    }, [expenses, incomes]);
+
     const filteredExpenses = (() => {
         const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
+        const todayStr = getLocalDate(now);
         if (selectedPeriod === 'today') {
             return expenses.filter(e => e.date === todayStr);
         }
@@ -700,7 +774,7 @@ export const AppContextProvider = ({ children }) => {
         return null;
     };
 
-    const value = {
+    const value = useMemo(() => ({
         // State
         expenses, setExpenses,
         incomes, setIncomes,
@@ -726,10 +800,7 @@ export const AppContextProvider = ({ children }) => {
         recurringTransactions, setRecurringTransactions, addRecurringTransaction, deleteRecurringTransaction, updateRecurringTransaction,
         currencySymbol,
         // Derived
-        allTransactions: [
-            ...expenses.map(e => ({ ...e, type: 'expense' })),
-            ...incomes.map(i => ({ ...i, type: 'income', title: i.source || i.title, category: { name: 'Income', icon: '💰' } }))
-        ].sort((a, b) => new Date(b.date) - new Date(a.date)),
+        allTransactions,
         totalSpent, totalIncome, balance,
         monthlySummary,
         categoriesWithBudget,
@@ -743,8 +814,15 @@ export const AppContextProvider = ({ children }) => {
         prevMonthSummary, getCategorySuggestion,
         hasFetchedFromCloud, setHasFetchedFromCloud,
         isSetupComplete, setIsSetupComplete,
-        handleWipeData
-    };
+        handleWipeData, checkAndResetMonth,
+        getLocalDate, getYearMonth
+    }), [
+        expenses, incomes, amount, title, category, editingId, isLoading, categoriesList,
+        selectedPeriod, filteredExpenses, budgets, currency, isDarkMode, isFirstLaunch,
+        userName, recurringTransactions, currencySymbol, allTransactions, totalSpent,
+        totalIncome, balance, monthlySummary, categoriesWithBudget, appNotifications,
+        prevMonthSummary, hasFetchedFromCloud, isSetupComplete, lastProcessedMonth
+    ]);
 
     return (
         <AppContext.Provider value={value}>

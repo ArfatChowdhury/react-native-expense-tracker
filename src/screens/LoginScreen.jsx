@@ -16,6 +16,7 @@ const LoginScreen = ({ onSkip }) => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [name, setName] = useState('')
+    const [error, setError] = useState('')
 
     const webClientId = process.env.EXPO_PUBLIC_FIREBASE_WEB_CLIENT_ID || 'missing-client-id';
     const androidClientId = process.env.EXPO_PUBLIC_FIREBASE_ANDROID_CLIENT_ID || webClientId;
@@ -65,15 +66,14 @@ const LoginScreen = ({ onSkip }) => {
             return;
         }
 
+        setError('');
         setLoading(true);
         try {
             if (isLogin) {
                 await signInWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged in AppNavigator handles navigation
             } else {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 await updateProfile(userCredential.user, { displayName: name });
-                // onAuthStateChanged in AppNavigator handles navigation
             }
         } catch (error) {
             let errorMsg = error.message;
@@ -82,11 +82,21 @@ const LoginScreen = ({ onSkip }) => {
             if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') errorMsg = 'Incorrect email or password.';
             if (error.code === 'auth/email-already-in-use') errorMsg = 'Email is already in use.';
             if (error.code === 'auth/weak-password') errorMsg = 'Password should be at least 6 characters.';
-            alert(errorMsg);
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
     }
+
+    const validateForm = () => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || !emailRegex.test(email)) return 'Invalid email format';
+        if (!password || password.length < 6) return 'Password must be at least 6 characters';
+        if (!isLogin && !name) return 'Name is required';
+        return '';
+    };
+
+    const isFormValid = validateForm() === '';
 
     return (
         <KeyboardAvoidingView
@@ -173,13 +183,14 @@ const LoginScreen = ({ onSkip }) => {
                                     value={password}
                                     onChangeText={setPassword}
                                 />
+                                {error ? <Text style={tailwind`text-xs text-red-500 font-bold ml-2 mt-2`}>{error}</Text> : null}
                             </View>
 
                             <TouchableOpacity
                                 onPress={handleEmailAuth}
-                                disabled={loading}
+                                disabled={loading || !isFormValid}
                                 activeOpacity={0.9}
-                                style={[tailwind`rounded-2xl py-4 items-center mt-2`, { backgroundColor: COLORS.black, ...SHADOW.md }]}
+                                style={[tailwind`rounded-2xl py-4 items-center mt-2`, { backgroundColor: isFormValid ? COLORS.black : COLORS.gray400, ...SHADOW.md }]}
                             >
                                 {loading ? (
                                     <ActivityIndicator color={COLORS.white} />
@@ -202,13 +213,12 @@ const LoginScreen = ({ onSkip }) => {
                     </View>
 
                     <TouchableOpacity
-                        onPress={handleGoogleSignIn}
-                        disabled={loading}
-                        activeOpacity={0.8}
-                        style={[tailwind`flex-row items-center w-full justify-center py-4.5 rounded-2xl border-2`, { borderColor: COLORS.gray100, backgroundColor: COLORS.white }]}
+                        onPress={() => alert('Google sync is currently under verification. This feature will be live shortly!')}
+                        activeOpacity={0.6}
+                        style={[tailwind`flex-row items-center w-full justify-center py-4.5 rounded-2xl border-2 opacity-50`, { borderColor: COLORS.gray100, backgroundColor: COLORS.white }]}
                     >
-                        <Ionicons name="logo-google" size={22} color={COLORS.textMain} style={tailwind`mr-3`} />
-                        <Text style={[tailwind`font-black text-base tracking-tight`, { color: COLORS.textMain }]}>Sign in with Google</Text>
+                        <Ionicons name="logo-google" size={22} color={COLORS.gray400} style={tailwind`mr-3`} />
+                        <Text style={[tailwind`font-black text-base tracking-tight`, { color: COLORS.gray400 }]}>Verification in progress...</Text>
                     </TouchableOpacity>
                 </View>
 

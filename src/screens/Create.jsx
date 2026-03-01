@@ -25,7 +25,7 @@ const Create = ({ navigation, route }) => {
     handleAddTransaction, category, setCategory,
     title, setTitle, amount, setAmount,
     editingId, setEditingId, handleUpdateTransaction, getCategorySuggestion,
-    currencySymbol
+    currencySymbol, getLocalDate
   } = useContext(AppContext)
 
   const isEditing = editingId !== null
@@ -49,7 +49,7 @@ const Create = ({ navigation, route }) => {
       title: title.trim(),
       amount: parseFloat(amount),
       category: type === 'expense' ? category : { name: title.trim(), icon: '💰' },
-      date: new Date().toISOString(),
+      date: getLocalDate(),
     };
 
     if (isEditing) {
