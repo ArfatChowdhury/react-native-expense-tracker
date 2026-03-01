@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AppContextProvider, AppContext } from './src/Contex/ContextApi';
 import { useContext } from 'react';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 function AppContent() {
   const { isLoading } = useContext(AppContext);
@@ -24,11 +25,13 @@ function AppContent() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AppContextProvider>
-        <StatusBar style="dark" />
-        <AppContent />
-      </AppContextProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AppContextProvider>
+          <StatusBar style="dark" />
+          <AppContent />
+        </AppContextProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
