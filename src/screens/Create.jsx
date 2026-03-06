@@ -1,5 +1,5 @@
-import { Alert, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native'
-import React, { useContext, useEffect, useState } from 'react'
+import { Alert, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View, StyleSheet, Animated } from 'react-native'
+import React, { useContext, useEffect, useState, useRef } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { AppContext } from '../Contex/ContextApi';
@@ -20,6 +20,8 @@ const Create = ({ navigation, route }) => {
   const [activeField, setActiveField] = useState(null);
   const [type, setType] = useState('expense'); // 'income' or 'expense'
   const [isSuggested, setIsSuggested] = useState(false);
+  const [isScanned, setIsScanned] = useState(false);
+  const scannedPulse = useRef(new Animated.Value(1)).current;
 
   const {
     handleAddTransaction, category, setCategory,
@@ -63,6 +65,19 @@ const Create = ({ navigation, route }) => {
     setTitle(src.name);
   }
 
+  // When returning from Scanner with pre-filled data
+  useEffect(() => {
+    if (route.params?.fromScanner) {
+      setIsScanned(true);
+      // Pulse badge
+      Animated.sequence([
+        Animated.timing(scannedPulse, { toValue: 1.1, duration: 150, useNativeDriver: true }),
+        Animated.timing(scannedPulse, { toValue: 1, duration: 150, useNativeDriver: true }),
+      ]).start();
+      setTimeout(() => setIsScanned(false), 3000);
+    }
+  }, [route.params?.fromScanner]);
+
   useEffect(() => {
     if (route.params?.itemCat) {
       setCategory(route.params.itemCat);
@@ -91,10 +106,25 @@ const Create = ({ navigation, route }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={COLORS.textMain} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {isEditing ? 'Edit Transaction' : 'New Transaction'}
-          </Text>
-          <View style={{ width: 40 }} />
+          <View style={{ alignItems: 'center' }}>
+            <Text style={styles.headerTitle}>
+              {isEditing ? 'Edit Transaction' : 'New Transaction'}
+            </Text>
+            {isScanned && (
+              <Animated.View style={[styles.scannedBadge, { transform: [{ scale: scannedPulse }] }]}>
+                <Ionicons name="scan" size={10} color="#16a34a" />
+                <Text style={styles.scannedBadgeText}>Scanned ✓</Text>
+              </Animated.View>
+            )}
+          </View>
+          {/* Scan button */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Scanner')}
+            style={styles.scanBtn}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="scan-outline" size={22} color={COLORS.textMain} />
+          </TouchableOpacity>
         </View>
 
         {/* Type Toggle */}
@@ -235,7 +265,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textMain, letterSpacing: -0.5 },
+  scanBtn: {
+    width: 44, height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.gray100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textMain, letterSpacing: -0.5 },
+  scannedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 10, borderWidth: 1, borderColor: '#BBF7D0', marginTop: 3,
+  },
+  scannedBadgeText: { fontSize: 10, fontWeight: '700', color: '#16a34a' },
 
   toggleContainer: {
     flexDirection: 'row',

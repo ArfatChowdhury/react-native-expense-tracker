@@ -243,6 +243,10 @@ const Home = ({ navigation }) => {
           </View>
         </View>
         <View style={styles.headerActions}>
+          {/* Scan button */}
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Scanner')}>
+            <Ionicons name="scan-outline" size={22} color={COLORS.textMain} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowNotifications(true)}>
             <Ionicons name="notifications-outline" size={22} color={COLORS.textMain} />
             {appNotifications?.length > 0 && <View style={styles.dot} />}

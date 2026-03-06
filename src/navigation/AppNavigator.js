@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from "react"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { createStackNavigator } from "@react-navigation/stack"
-import { Platform, TouchableOpacity, View, Text, ActivityIndicator, StyleSheet, Dimensions } from "react-native"
+import { Platform, TouchableOpacity, View, Text, ActivityIndicator, StyleSheet, Dimensions, Keyboard } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import Svg, { Path } from "react-native-svg"
 import { BlurView } from "expo-blur"
+import * as Notifications from "expo-notifications"
+import { useNavigationContainerRef } from "@react-navigation/native"
 
 import Home from "../screens/Home"
 import Create from "../screens/Create"
@@ -15,6 +17,7 @@ import Category from "../screens/Category"
 import AddIncome from "../screens/AddIncome"
 import RecurringManager from "../screens/RecurringManager"
 import LoginScreen from "../screens/LoginScreen"
+import ScannerScreen from "../screens/ScannerScreen"
 import { onAuthStateChanged } from "../services/firestoreService"
 
 const { width } = Dimensions.get("window")
@@ -28,7 +31,7 @@ const Stack = createStackNavigator()
 
 const NotchedBackground = () => {
   const center = TAB_BAR_WIDTH / 2
-  const r = 40 // radius of cutout
+  const r = 40
   const corner = 30
 
   const path = `
@@ -76,18 +79,13 @@ function MyTabs() {
 
 /* ---------------- FLOATING TAB ---------------- */
 
-import { Keyboard } from 'react-native'
-
 const FloatingTabBar = ({ state, descriptors, navigation }) => {
   const [keyboardVisible, setKeyboardVisible] = useState(false)
 
   useEffect(() => {
-    const showSubscription = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true))
-    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false))
-    return () => {
-      showSubscription.remove()
-      hideSubscription.remove()
-    }
+    const showSub = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true))
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false))
+    return () => { showSub.remove(); hideSub.remove() }
   }, [])
 
   if (keyboardVisible) return null
@@ -95,78 +93,38 @@ const FloatingTabBar = ({ state, descriptors, navigation }) => {
   return (
     <View style={styles.container}>
       <NotchedBackground />
-
       <View style={styles.row}>
         {state.routes.map((route, index) => {
           const isFocused = state.index === index
           const isCreate = route.name === "Create"
 
-          let icon
-          let label
-
+          let icon, label
           switch (route.name) {
-            case "Home":
-              icon = isFocused ? "home" : "home-outline"
-              label = "Home"
-              break
-            case "Insight":
-              icon = isFocused ? "stats-chart" : "stats-chart-outline"
-              label = "Insights"
-              break
-            case "Budget":
-              icon = isFocused ? "wallet" : "wallet-outline"
-              label = "Budget"
-              break
-            case "SettingsTab":
-              icon = isFocused ? "person" : "person-outline"
-              label = "Account"
-              break
+            case "Home": icon = isFocused ? "home" : "home-outline"; label = "Home"; break
+            case "Insight": icon = isFocused ? "stats-chart" : "stats-chart-outline"; label = "Insights"; break
+            case "Budget": icon = isFocused ? "wallet" : "wallet-outline"; label = "Budget"; break
+            case "SettingsTab": icon = isFocused ? "person" : "person-outline"; label = "Account"; break
           }
 
           const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            })
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name)
-            }
+            const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true })
+            if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name)
           }
-
-          /* ---- CENTER CREATE BUTTON ---- */
 
           if (isCreate) {
             return (
               <View key={index} style={styles.centerWrapper}>
-                <TouchableOpacity
-                  onPress={onPress}
-                  activeOpacity={0.8}
-                  style={styles.centerButton}
-                >
+                <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.centerButton}>
                   <Ionicons name="add" size={32} color="#FFF" />
                 </TouchableOpacity>
               </View>
             )
           }
 
-          /* ---- NORMAL TAB ---- */
-
           return (
-            <TouchableOpacity
-              key={index}
-              style={styles.tab}
-              onPress={onPress}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={icon}
-                size={22}
-                color={isFocused ? "#000" : "#9CA3AF"}
-              />
-              <Text style={[styles.label, isFocused && styles.activeLabel]}>
-                {label}
-              </Text>
+            <TouchableOpacity key={index} style={styles.tab} onPress={onPress} activeOpacity={0.7}>
+              <Ionicons name={icon} size={22} color={isFocused ? "#000" : "#9CA3AF"} />
+              <Text style={[styles.label, isFocused && styles.activeLabel]}>{label}</Text>
             </TouchableOpacity>
           )
         })}
@@ -179,70 +137,21 @@ const FloatingTabBar = ({ state, descriptors, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    bottom: 28,
-    left: 20,
-    right: 20,
-    height: TAB_BAR_HEIGHT,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.2,
-    shadowRadius: 18,
-    elevation: 20,
+    position: "absolute", bottom: 28, left: 20, right: 20, height: TAB_BAR_HEIGHT,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2, shadowRadius: 18, elevation: 20,
   },
-
-  svgWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 30,
-    overflow: "hidden",
-  },
-
-  row: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-  },
-
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  label: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#9CA3AF",
-    marginTop: 2,
-  },
-
-  activeLabel: {
-    color: "#000",
-  },
-
-  /* ---- CREATE BUTTON ---- */
-
-  centerWrapper: {
-    flex: 1, // Let it take space in the flex row
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
+  svgWrapper: { ...StyleSheet.absoluteFillObject, borderRadius: 30, overflow: "hidden" },
+  row: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 15 },
+  tab: { flex: 1, alignItems: "center", justifyContent: "center" },
+  label: { fontSize: 10, fontWeight: "700", color: "#9CA3AF", marginTop: 2 },
+  activeLabel: { color: "#000" },
+  centerWrapper: { flex: 1, alignItems: "center", justifyContent: "center" },
   centerButton: {
-    width: 65,
-    height: 65,
-    borderRadius: 33,
-    backgroundColor: "#000000ff",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: -40, // Raise properly into the notch
-    shadowColor: "#1E1B4B",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 20,
+    width: 65, height: 65, borderRadius: 33, backgroundColor: "#000000ff",
+    justifyContent: "center", alignItems: "center", marginTop: -40,
+    shadowColor: "#1E1B4B", shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5, shadowRadius: 12, elevation: 20,
   },
 })
 
@@ -260,6 +169,31 @@ const AppNavigator = () => {
   const { isFirstLaunch, hasFetchedFromCloud, isSetupComplete } = useContext(AppContext)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
+
+  // ── Navigation ref for notification deep-link ───────────────────────
+  const navigationRef = useRef(null)
+  const lastNotifResponse = Notifications.useLastNotificationResponse()
+
+  useEffect(() => {
+    if (!lastNotifResponse) return
+    const screen = lastNotifResponse.notification.request.content.data?.screen
+    if (!screen || !isAuthenticated || !isSetupComplete) return
+
+    // Small delay to ensure navigator is mounted
+    setTimeout(() => {
+      try {
+        if (screen === 'Create') {
+          navigationRef.current?.navigate('BottomTabs', { screen: 'Create' })
+        } else if (screen === 'Budget') {
+          navigationRef.current?.navigate('BottomTabs', { screen: 'Budget' })
+        } else if (screen === 'Insight') {
+          navigationRef.current?.navigate('BottomTabs', { screen: 'Insight' })
+        }
+      } catch (e) {
+        console.log('Notification nav error:', e)
+      }
+    }, 300)
+  }, [lastNotifResponse, isAuthenticated, isSetupComplete])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged((user) => {
@@ -281,12 +215,14 @@ const AppNavigator = () => {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      ref={navigationRef}
+      screenOptions={{ headerShown: false }}
+    >
       {!isAuthenticated ? (
         <Stack.Screen name="Login">
           {(props) => (
             <LoginScreen {...props} onSkip={() => {
-              setHasFetchedFromCloud(true);
               setIsAuthenticated(true);
             }} />
           )}
@@ -305,6 +241,7 @@ const AppNavigator = () => {
           <Stack.Screen name="Category" component={Category} />
           <Stack.Screen name="AddIncome" component={AddIncome} />
           <Stack.Screen name="RecurringManager" component={RecurringManager} />
+          <Stack.Screen name="Scanner" component={ScannerScreen} options={{ presentation: 'modal' }} />
         </>
       )}
       {/* Shared Screens */}

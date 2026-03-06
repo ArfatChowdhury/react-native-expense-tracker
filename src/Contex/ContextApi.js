@@ -2,7 +2,7 @@ import { createContext, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { categories } from "../Data/categoriesData";
-import { registerForPushNotificationsAsync, sendBudgetWarning, scheduleMonthlySummaryAlert } from "../services/NotificationService";
+import { registerForPushNotificationsAsync, sendBudgetWarning, scheduleMonthlySummaryAlert, scheduleDailyReminder } from "../services/NotificationService";
 import { db, auth } from "../services/firebase";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 
@@ -92,8 +92,13 @@ export const AppContextProvider = ({ children }) => {
     // ── Load on mount ─────────────────────────────────────────
     useEffect(() => {
         loadData();
-        registerForPushNotificationsAsync();
-        scheduleMonthlySummaryAlert();
+        // Register permissions first, then schedule using the fixed service
+        registerForPushNotificationsAsync().then(granted => {
+            if (granted) {
+                scheduleDailyReminder();
+                scheduleMonthlySummaryAlert();
+            }
+        });
 
         // Background check every hour
         const interval = setInterval(() => {
