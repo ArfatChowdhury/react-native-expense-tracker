@@ -29,6 +29,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#22C55E"
+    },
     "extra": {
       "privacyPolicyUrl": "https://your-privacy-policy-url.com",
       "eas": {

@@ -1,7 +1,7 @@
 import { Alert, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View, StyleSheet, Animated } from 'react-native'
 import React, { useContext, useEffect, useState, useRef } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, AntDesign } from '@expo/vector-icons'
 import { AppContext } from '../Contex/ContextApi';
 import { COLORS, SHADOW } from '../theme';
 
@@ -86,17 +86,31 @@ const Create = ({ navigation, route }) => {
   }, [route.params?.itemCat])
 
   useEffect(() => {
-    if (title && !isEditing && !category?.name && type === 'expense') {
-      const suggestion = getCategorySuggestion(title);
-      if (suggestion) {
-        setCategory(suggestion);
-        setIsSuggested(true);
+    if (type === 'expense' && !isEditing) {
+      if (!title) {
+        // If the user clears the title, only clear the category if it was auto-suggested
+        if (isSuggested) {
+          setCategory({});
+          setIsSuggested(false);
+        }
+      } else {
+        // Evaluate suggestion whenever title changes
+        // Only run if user hasn't manually selected a category (isSuggested is true, or category is completely empty)
+        if (!category?.name || isSuggested) {
+          const suggestion = getCategorySuggestion(title);
+          if (suggestion) {
+            // Update to the new suggestion
+            setCategory(suggestion);
+            setIsSuggested(true);
+          } else if (isSuggested) {
+            // If there's no longer a suggestion for the new text, revert back to empty
+            setCategory({});
+            setIsSuggested(false);
+          }
+        }
       }
     }
-    if (!title) {
-      setIsSuggested(false);
-    }
-  }, [title]);
+  }, [title, type, isEditing]);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -112,7 +126,7 @@ const Create = ({ navigation, route }) => {
             </Text>
             {isScanned && (
               <Animated.View style={[styles.scannedBadge, { transform: [{ scale: scannedPulse }] }]}>
-                <Ionicons name="scan" size={10} color="#16a34a" />
+                <AntDesign name="scan" size={10} color="#16a34a" />
                 <Text style={styles.scannedBadgeText}>Scanned ✓</Text>
               </Animated.View>
             )}
@@ -123,7 +137,7 @@ const Create = ({ navigation, route }) => {
             style={styles.scanBtn}
             activeOpacity={0.8}
           >
-            <Ionicons name="scan-outline" size={22} color={COLORS.textMain} />
+            <AntDesign name="scan" size={22} color={COLORS.textMain} />
           </TouchableOpacity>
         </View>
 

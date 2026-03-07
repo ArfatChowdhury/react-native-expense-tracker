@@ -1,9 +1,9 @@
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground, Modal, ScrollView as RNScrollView, Image } from 'react-native'
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, StatusBar, ImageBackground, Modal, ScrollView as RNScrollView, Image, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
 import React, { useContext, useMemo, useCallback } from 'react'
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, AntDesign } from '@expo/vector-icons'
 import { AppContext } from '../Contex/ContextApi'
 import { COLORS, SHADOW } from '../theme'
 import ExpenseItemCard from '../components/ExpenseItemCard'
@@ -11,6 +11,8 @@ import EmptyList from '../components/EmptyList'
 import DateFilterBar from '../components/DateFilterBar'
 import tailwind from 'twrnc'
 import { auth } from '../services/firebase'
+import { scheduleCustomReminder, getActiveReminders, cancelReminder } from '../services/NotificationService'
+import DateTimePicker from '@react-native-community/datetimepicker'
 const Home = ({ navigation }) => {
   const {
     totalSpent, balance, expenses, allTransactions, handleEdit, handleDelete,
@@ -26,6 +28,24 @@ const Home = ({ navigation }) => {
   const [hasDismissedSummaryBanner, setHasDismissedSummaryBanner] = React.useState(false)
   const [hasSeenPreClosingThisMonth, setHasSeenPreClosingThisMonth] = React.useState(false)
   const [showNotifications, setShowNotifications] = React.useState(false)
+  const [reminderMsg, setReminderMsg] = React.useState('')
+
+  // Custom Reminders States
+  const [activeReminders, setActiveReminders] = React.useState([])
+  const [reminderDate, setReminderDate] = React.useState(new Date())
+  const [showPicker, setShowPicker] = React.useState(false)
+  const [pickerMode, setPickerMode] = React.useState('date')
+
+  const fetchReminders = async () => {
+    const reminders = await getActiveReminders()
+    setActiveReminders(reminders)
+  }
+
+  React.useEffect(() => {
+    if (showNotifications) {
+      fetchReminders()
+    }
+  }, [showNotifications])
 
 
 
@@ -243,13 +263,11 @@ const Home = ({ navigation }) => {
           </View>
         </View>
         <View style={styles.headerActions}>
-          {/* Scan button */}
           <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Scanner')}>
-            <Ionicons name="scan-outline" size={22} color={COLORS.textMain} />
+            <AntDesign name="scan" size={22} color={COLORS.textMain} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowNotifications(true)}>
-            <Ionicons name="notifications-outline" size={22} color={COLORS.textMain} />
-            {appNotifications?.length > 0 && <View style={styles.dot} />}
+            <Ionicons name="alarm-outline" size={22} color={COLORS.textMain} />
           </TouchableOpacity>
         </View>
       </View>
@@ -456,7 +474,7 @@ const Home = ({ navigation }) => {
           </View>
         </View>
       </Modal>
-      {/* Notifications Modal */}
+      {/* Reminders Modal */}
       <Modal
         visible={showNotifications}
         transparent
@@ -464,35 +482,116 @@ const Home = ({ navigation }) => {
         onRequestClose={() => setShowNotifications(false)}
       >
         <View style={styles.modalBackdrop}>
-          <View style={styles.notificationModalContainer}>
-            <Text style={styles.notificationModalTitle}>Notifications</Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={[styles.notificationModalContainer, { paddingBottom: 20, maxHeight: '90%' }]}
+          >
+            <View style={tailwind`flex-row justify-between items-center w-full mb-4`}>
+              <Text style={styles.notificationModalTitle}>Custom Reminders</Text>
+              <Ionicons name="alarm" size={24} color={COLORS.primary} />
+            </View>
+
             <RNScrollView style={tailwind`w-full`} showsVerticalScrollIndicator={false}>
-              {(!appNotifications || appNotifications.length === 0) ? (
-                <Text style={[tailwind`text-center text-gray-400 mt-10`, { fontWeight: '600' }]}>No notifications yet.</Text>
-              ) : appNotifications.map(nav => (
-                <View key={nav.id} style={styles.notificationItem}>
-                  <View style={[styles.notificationIconBox, { backgroundColor: `${getNotificationIconColor(nav.type)}20` }]}>
-                    <Ionicons
-                      name={nav.type === 'warning' ? 'warning' : 'information-circle'}
-                      size={24}
-                      color={getNotificationIconColor(nav.type)}
-                    />
-                  </View>
-                  <View style={tailwind`flex-1`}>
-                    <Text style={styles.notificationTitle}>{nav.title}</Text>
-                    <Text style={styles.notificationBody}>{nav.body}</Text>
-                    <Text style={styles.notificationDate}>{nav.date}</Text>
-                  </View>
+
+              <Text style={tailwind`text-gray-500 font-bold text-xs mb-2 uppercase`}>Set New Reminder</Text>
+              <View style={tailwind`bg-white rounded-xl border border-gray-200 p-4 mb-6`}>
+                <TextInput
+                  style={[tailwind`w-full bg-gray-50 rounded-xl p-3 mb-4 border border-gray-200`, { color: COLORS.textMain, fontSize: 15 }]}
+                  placeholder="E.g., Log dinner expenses..."
+                  placeholderTextColor={COLORS.gray400}
+                  value={reminderMsg}
+                  onChangeText={setReminderMsg}
+                />
+
+                <View style={tailwind`flex-row justify-between mb-4`}>
+                  <TouchableOpacity
+                    style={tailwind`flex-1 bg-blue-50 border border-blue-100 p-3 rounded-lg mr-2 flex-row items-center justify-center`}
+                    onPress={() => { setPickerMode('date'); setShowPicker(true); }}
+                  >
+                    <Ionicons name="calendar" size={18} color={COLORS.primary} style={tailwind`mr-2`} />
+                    <Text style={tailwind`text-blue-700 font-bold text-sm`}>
+                      {reminderDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={tailwind`flex-1 bg-purple-50 border border-purple-100 p-3 rounded-lg ml-2 flex-row items-center justify-center`}
+                    onPress={() => { setPickerMode('time'); setShowPicker(true); }}
+                  >
+                    <Ionicons name="time-outline" size={18} color="#7e22ce" style={tailwind`mr-2`} />
+                    <Text style={tailwind`text-purple-700 font-bold text-sm`}>
+                      {reminderDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              ))}
+
+                {showPicker && (
+                  <DateTimePicker
+                    value={reminderDate}
+                    mode={pickerMode}
+                    is24Hour={false}
+                    display="default"
+                    minimumDate={new Date()}
+                    onChange={(event, selectedDate) => {
+                      setShowPicker(false);
+                      if (selectedDate) setReminderDate(selectedDate);
+                    }}
+                  />
+                )}
+
+                <TouchableOpacity
+                  style={tailwind`w-full bg-green-500 rounded-xl p-3 flex-row items-center justify-center`}
+                  onPress={async () => {
+                    if (reminderDate <= new Date()) {
+                      Alert.alert("Invalid Time", "Please choose a future date and time.");
+                      return;
+                    }
+                    const success = await scheduleCustomReminder(reminderDate, reminderMsg);
+                    if (success) {
+                      Alert.alert('Success', 'Reminder carefully scheduled!');
+                      setReminderMsg('');
+                      fetchReminders();
+                    }
+                  }}>
+                  <Ionicons name="checkmark-circle-outline" size={20} color="white" style={tailwind`mr-2`} />
+                  <Text style={tailwind`text-white font-bold text-base`}>Save Reminder</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={tailwind`text-gray-500 font-bold text-xs mb-2 uppercase`}>Active Scheduled Reminders</Text>
+              {activeReminders.length === 0 ? (
+                <Text style={tailwind`text-gray-400 text-sm font-semibold mb-6`}>No custom reminders coming up.</Text>
+              ) : (
+                activeReminders.map(rem => (
+                  <View key={rem.identifier} style={tailwind`flex-row items-center bg-gray-50 border border-gray-100 p-4 rounded-xl mb-3`}>
+                    <View style={tailwind`bg-green-100 rounded-full p-2 mr-3`}>
+                      <Ionicons name="alarm-outline" size={20} color={COLORS.income} />
+                    </View>
+                    <View style={tailwind`flex-1`}>
+                      <Text style={tailwind`text-gray-800 font-bold text-sm`} numberOfLines={1}>{rem.content.body}</Text>
+                      <Text style={tailwind`text-gray-500 text-xs mt-1`}>
+                        {new Date(rem.trigger?.value).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={tailwind`bg-red-50 p-2 rounded-lg ml-2`}
+                      onPress={async () => {
+                        await cancelReminder(rem.identifier);
+                        fetchReminders();
+                      }}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={COLORS.expense} />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+
             </RNScrollView>
-            <TouchableOpacity
-              style={[styles.closeModalBtn, { marginTop: 20 }]}
-              onPress={() => setShowNotifications(false)}
-            >
-              <Text style={styles.closeModalBtnText}>Close</Text>
+
+            <TouchableOpacity style={[styles.closeModalBtn, { marginTop: 10, width: '100%', backgroundColor: COLORS.gray100 }]} onPress={() => setShowNotifications(false)}>
+              <Text style={[styles.closeModalBtnText, { color: COLORS.textMain }]}>Close</Text>
             </TouchableOpacity>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 

@@ -221,3 +221,51 @@ export const scheduleMonthlySummaryAlert = async () => {
         console.log('scheduleMonthlySummaryAlert error:', err);
     }
 };
+// ─── Custom User Reminders ──────────────────────────────────────────────────
+export const scheduleCustomReminder = async (triggerDate, message) => {
+    try {
+        const identifier = `wallety-custom-${Date.now()}`;
+
+        await Notifications.scheduleNotificationAsync({
+            identifier,
+            content: {
+                title: '⏰ Custom Reminder',
+                body: message || "It's time! Don't forget to track your expenses.",
+                sound: 'default',
+                color: '#22C55E',
+                priority: Notifications.AndroidNotificationPriority.HIGH,
+                data: { screen: 'Create' },
+                ...(Platform.OS === 'android' && { channelId: CHANNEL_REMINDER }),
+            },
+            trigger: Platform.OS === 'android'
+                ? { type: 'date', date: triggerDate.getTime(), channelId: CHANNEL_REMINDER }
+                : { type: 'date', date: triggerDate.getTime() },
+        });
+
+        return true;
+    } catch (err) {
+        console.log('scheduleCustomReminder error:', err);
+        return false;
+    }
+};
+
+export const getActiveReminders = async () => {
+    try {
+        const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+        // Return only the custom reminders we created
+        return scheduled.filter(n => n.identifier.startsWith('wallety-custom-'));
+    } catch (err) {
+        console.log('getActiveReminders error:', err);
+        return [];
+    }
+};
+
+export const cancelReminder = async (identifier) => {
+    try {
+        await Notifications.cancelScheduledNotificationAsync(identifier);
+        return true;
+    } catch (err) {
+        console.log('cancelReminder error:', err);
+        return false;
+    }
+};

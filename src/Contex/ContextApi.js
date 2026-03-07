@@ -771,21 +771,28 @@ export const AppContextProvider = ({ children }) => {
 
         const suggestions = {
             // Transport
-            'uber': 'Transport', 'bolt': 'Transport', 'taxi': 'Transport', 'grab': 'Transport', 'lyft': 'Transport', 'metro': 'Transport', 'subway': 'Transport', 'train': 'Transport', 'bus': 'Transport', 'fuel': 'Transport', 'gas': 'Transport', 'petrol': 'Transport', 'parking': 'Transport',
+            'uber': 'Transport', 'bolt': 'Transport', 'taxi': 'Transport', 'grab': 'Transport', 'lyft': 'Transport', 'metro': 'Transport', 'train': 'Transport', 'bus': 'Transport', 'fuel': 'Transport', 'gas': 'Transport', 'petrol': 'Transport', 'parking': 'Transport', 'flight': 'Transport', 'airline': 'Transport', 'car': 'Transport', 'auto': 'Transport', 'toll': 'Transport', 'ferry': 'Transport', 'transit': 'Transport', 'shell': 'Transport', 'chevron': 'Transport', 'exxon': 'Transport',
+
             // Food & Dining
-            'kfc': 'Food', 'mcdonald': 'Food', 'burger': 'Food', 'pizza': 'Food', 'starbucks': 'Food', 'restaurant': 'Food', 'dinner': 'Food', 'lunch': 'Food', 'breakfast': 'Food', 'cafe': 'Food', 'subway': 'Food', 'domino': 'Food', 'dunkin': 'Food', 'food': 'Food', 'eat': 'Food',
+            'kfc': 'Food', 'mcdonald': 'Food', 'burger': 'Food', 'pizza': 'Food', 'starbucks': 'Food', 'restaurant': 'Food', 'dinner': 'Food', 'lunch': 'Food', 'breakfast': 'Food', 'cafe': 'Food', 'subway': 'Food', 'domino': 'Food', 'dunkin': 'Food', 'food': 'Food', 'eat': 'Food', 'snack': 'Food', 'coffee': 'Food', 'tea': 'Food', 'drink': 'Food', 'bar': 'Food', 'pub': 'Food', 'bakery': 'Food', 'sushi': 'Food', 'taco': 'Food', 'wendy': 'Food', 'chipotle': 'Food', 'kitchen': 'Food', 'deli': 'Food', 'grill': 'Food', 'chicken': 'Food', 'steak': 'Food', 'seafood': 'Food', 'doordash': 'Food', 'ubereats': 'Food', 'grubhub': 'Food', 'deliveroo': 'Food',
+
             // Bills & Utilities
-            'rent': 'Bills', 'electricity': 'Bills', 'water': 'Bills', 'internet': 'Bills', 'phone': 'Bills', 'mobile': 'Bills', 'utility': 'Bills', 'insurance': 'Bills', 'tax': 'Bills', 'council': 'Bills',
+            'rent': 'Bills', 'electricity': 'Bills', 'water': 'Bills', 'internet': 'Bills', 'phone': 'Bills', 'mobile': 'Bills', 'utility': 'Bills', 'insurance': 'Bills', 'tax': 'Bills', 'council': 'Bills', 'mortgage': 'Bills', 'loan': 'Bills', 'credit': 'Bills', 'cable': 'Bills', 'trash': 'Bills', 'sewage': 'Bills', 'fee': 'Bills', 'bill': 'Bills', 'verizon': 'Bills', 'att': 'Bills', 't-mobile': 'Bills', 'comcast': 'Bills', 'xfinity': 'Bills',
+
             // Subscriptions
-            'netflix': 'Subscription', 'spotify': 'Subscription', 'apple': 'Subscription', 'youtube': 'Subscription', 'disney': 'Subscription', 'amazon prime': 'Subscription', 'hbo': 'Subscription', 'gym': 'Subscription',
+            'netflix': 'Subscription', 'spotify': 'Subscription', 'apple': 'Subscription', 'youtube': 'Subscription', 'disney': 'Subscription', 'amazon prime': 'Subscription', 'hbo': 'Subscription', 'gym': 'Subscription', 'hulu': 'Subscription', 'prime video': 'Subscription', 'patreon': 'Subscription', 'adobe': 'Subscription', 'microsoft': 'Subscription', 'xbox': 'Subscription', 'playstation': 'Subscription', 'nintendo': 'Subscription', 'cloud': 'Subscription', 'premium': 'Subscription', 'membership': 'Subscription', 'crunchyroll': 'Subscription',
+
             // Shopping
-            'walmart': 'Shopping', 'amazon': 'Shopping', 'target': 'Shopping', 'grocery': 'Shopping', 'market': 'Shopping', 'shop': 'Shopping', 'store': 'Shopping', 'mall': 'Shopping', 'clothing': 'Shopping', 'ebay': 'Shopping', 'adidas': 'Shopping', 'nike': 'Shopping',
+            'walmart': 'Shopping', 'amazon': 'Shopping', 'target': 'Shopping', 'grocery': 'Shopping', 'market': 'Shopping', 'shop': 'Shopping', 'store': 'Shopping', 'mall': 'Shopping', 'clothing': 'Shopping', 'ebay': 'Shopping', 'adidas': 'Shopping', 'nike': 'Shopping', 'ikea': 'Shopping', 'costco': 'Shopping', 'best buy': 'Shopping', 'home depot': 'Shopping', 'zara': 'Shopping', 'h&m': 'Shopping', 'hm': 'Shopping', 'apparel': 'Shopping', 'shoes': 'Shopping', 'electronics': 'Shopping', 'supermarket': 'Shopping', 'retail': 'Shopping', 'aldi': 'Shopping', 'trader joe': 'Shopping', 'whole foods': 'Shopping', 'kroger': 'Shopping',
+
             // Health
-            'hospital': 'Health', 'pharmacy': 'Health', 'doctor': 'Health', 'medicine': 'Health', 'dentist': 'Health', 'clinic': 'Health', 'vet': 'Health',
+            'hospital': 'Health', 'pharmacy': 'Health', 'doctor': 'Health', 'medicine': 'Health', 'dentist': 'Health', 'clinic': 'Health', 'vet': 'Health', 'fitness': 'Health', 'therapy': 'Health', 'optometrist': 'Health', 'vision': 'Health', 'medical': 'Health', 'pill': 'Health', 'rx': 'Health', 'drugstore': 'Health', 'cvs': 'Health', 'walgreens': 'Health', 'walgreens': 'Health', 'rite aid': 'Health',
+
             // Education
-            'school': 'Education', 'college': 'Education', 'university': 'Education', 'course': 'Education', 'tutor': 'Education', 'book': 'Education',
+            'school': 'Education', 'college': 'Education', 'university': 'Education', 'course': 'Education', 'tutor': 'Education', 'book': 'Education', 'tuition': 'Education', 'student': 'Education', 'class': 'Education', 'training': 'Education', 'udemy': 'Education', 'coursera': 'Education', 'masterclass': 'Education',
+
             // Income
-            'salary': 'Income', 'bonus': 'Income', 'freelance': 'Income', 'dividend': 'Income', 'interest': 'Income', 'refund': 'Income'
+            'salary': 'Income', 'bonus': 'Income', 'freelance': 'Income', 'dividend': 'Income', 'interest': 'Income', 'refund': 'Income', 'paycheck': 'Income', 'wage': 'Income', 'gift': 'Income'
         };
 
         for (const [key, cat] of Object.entries(suggestions)) {
