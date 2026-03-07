@@ -38,6 +38,8 @@ Instead of manually typing out receipts, simply snap a picture! Powered by **Gro
 *   **Category Budgets:** Set specific spending limits for completely custom categories.
 *   **Intelligent Warnings:** Receive app alerts when you approach or exceed your category budget.
 *   **Interactive Insights:** Visualize your spending and savings across different periods (Today, Weekly, Monthly, All Time).
+*   **Automatic Monthly Resets:** Seamlessly rolls over your budget and balances into the next calendar month so you always start fresh.
+*   **PDF Exports:** Generate beautifully formatted PDF reports of your monthly summaries to save or share.
 
 ### ⏰ Advanced Custom Reminders
 *   **Never Forget:** Set custom native push notifications using a built-in calendar and time picker.
@@ -101,7 +103,6 @@ Scan the generated QR code using the **Expo Go** app on your physical device, or
 ## 🤝 Roadmap / Future Ideas
 *   [ ] Multi-currency support
 *   [ ] Sync with live bank accounts (Plaid integration)
-*   [ ] Export monthly summaries as PDFs
 
 ---
 
