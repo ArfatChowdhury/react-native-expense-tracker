@@ -39,9 +39,16 @@
         "projectId": "73029201-4843-408f-9f12-24b9403b086a"
       }
     },
+    "updates": {
+      "url": "https://u.expo.dev/73029201-4843-408f-9f12-24b9403b086a"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "plugins": [
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      "expo-updates"
     ]
   }
 }
