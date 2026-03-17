@@ -1,6 +1,6 @@
 <div align="center">
   <img src="./assets/icon.png" alt="App Logo" width="100"/>
-  <h1>Expense Tracker (Panda Edition) 🐼</h1>
+  <h1>Wallety - AI Budget Tracker</h1>
   <p><i>A sleek, AI-powered personal finance manager built with React Native & Expo.</i></p>
 
   <p>
